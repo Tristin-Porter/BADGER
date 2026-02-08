@@ -1,0 +1,8 @@
+This project will be for translating Web Assembly to a number of various outputs. The outputs you will emit from WASM are listed below:
+x86_64: Your laptop (Do this one first)
+x86_32
+x86_16
+ARM64
+ARM32
+
+USE CDTk!
