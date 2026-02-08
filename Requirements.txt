@@ -1,8 +1,13 @@
-This project will be for translating Web Assembly to a number of various assembly languages. The outputs you will emit from WASM are listed below:
+This project will be for translating Web Assembly to a number of various assembly languages and container formats. The outputs you will emit from WASM are listed below:
 x86_64: Your laptop (Do this one first)
 x86_32
 x86_16
 ARM64
 ARM32
+
+The container formats are as listed below
+PE: Windows
+Native: For our os we will do this one first
+.deb: Your linux format
 
 USE CDTk!
