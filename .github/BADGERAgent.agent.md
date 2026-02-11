@@ -34,8 +34,3 @@ You must:
   not support ELF, .deb, or any other binary/container formats.
 
 You may reference the spec file at any time.
-
----
-
-# badger-spec.txt
-
