@@ -5,6 +5,8 @@ description: >
   full BADGER architecture, WAT-lowering model, multi-architecture assembly
   pipeline, and container emission rules as defined in the repository
   specification files.
+spec:
+  - badger-spec.txt
 ---
 
 # BADGERAgent
