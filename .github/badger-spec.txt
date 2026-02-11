@@ -1,0 +1,252 @@
+BADGER — Better Assembler for Dependable Generation of Efficient Results
+
+1. Purpose and role
+
+BADGER is the canonical assembler and WAT-lowering backend for the CRAB toolchain.
+Its purpose is to take standard WAT (WebAssembly Text format) as input, lower it
+to architecture-specific assembly, and assemble that assembly into executable
+machine code contained in either Native (bare metal) or PE (Windows) binaries.
+
+BADGER is not a general-purpose assembler. It is a sovereign, minimal, and
+predictable backend designed specifically for CRAB’s WAT output and for the
+architectures and containers defined in this specification.
+
+2. Implementation language
+
+BADGER must be implemented entirely in C#. No other implementation languages are
+permitted in the project. All core logic, parsing, lowering, encoding, and
+container emission must be written in C#. Build scripts may exist, but they must
+not introduce alternative language implementations of BADGER.
+
+3. Inputs and outputs
+
+3.1 Input
+
+BADGER’s only accepted input is standard WAT (WebAssembly Text format) as defined
+by the official WebAssembly text format specification. BADGER must not introduce
+a custom WAT dialect.
+
+BADGER must use CDTk to parse WAT. The WAT grammar and model are defined in the
+Dependencies folder and must be treated as canonical. BADGER must not implement
+its own ad-hoc WAT parser; all parsing must go through CDTk.
+
+3.2 Outputs
+
+BADGER produces executable machine code in two container formats:
+
+- Native (bare metal) flat binaries
+- PE (Portable Executable) binaries for Windows
+
+BADGER must not emit ELF, .deb, or any other binary or packaging formats.
+
+4. Supported architectures
+
+BADGER supports the following target architectures:
+
+- x86_64 (primary, implemented first)
+- x86_32
+- x86_16
+- ARM64
+- ARM32
+
+Each architecture has:
+
+- A canonical internal lowering model
+- A canonical assembly dialect (plain text)
+- A well-defined instruction subset sufficient to represent lowered WAT
+
+BADGER must be designed so that architectures are modular and isolated. Adding a
+new architecture must not require invasive changes to existing architectures.
+
+5. High-level pipeline
+
+For each compilation, BADGER follows this pipeline:
+
+1) WAT parsing
+   - Input: WAT text
+   - Tool: CDTk WAT grammar and model
+   - Output: WAT AST / model (modules, functions, locals, blocks, instructions)
+
+2) WAT → architecture-lowering
+   - Input: WAT model
+   - Output: architecture-specific IR and canonical assembly dialect (plain text)
+   - Responsibilities:
+     - Map stack-based WAT semantics to register/stack-based architecture
+     - Build control-flow graphs and basic blocks
+     - Assign locals to registers and/or stack slots
+     - Lower WAT instructions to architecture instructions
+
+3) Assembly encoding
+   - Input: canonical assembly (plain text)
+   - Output: raw machine code bytes
+   - Responsibilities:
+     - Parse assembly into instruction objects
+     - Resolve labels and compute branch/call offsets
+     - Encode instructions using architecture-specific encoding tables
+     - Produce a contiguous byte buffer representing the program
+
+4) Container emission
+   - Input: machine code bytes
+   - Output: Native flat binary or PE binary
+   - Responsibilities:
+     - For Native: emit a flat binary with a fixed entrypoint at offset 0
+     - For PE: emit a minimal PE executable with a single code section and
+       a defined entrypoint
+
+6. WAT parsing
+
+BADGER must treat the WAT specification in Dependencies as canonical. The WAT
+grammar and model must be implemented using CDTk. The WAT model must expose:
+
+- Modules
+- Functions
+- Types
+- Locals
+- Parameters
+- Blocks, loops, if/else
+- Instructions (e.g., i32.add, i32.const, call, br, br_if, return)
+
+BADGER must not reinterpret WAT semantics. It must preserve the standard WAT
+semantics and lower them faithfully to each target architecture.
+
+7. Architecture-lowering
+
+For each architecture, BADGER defines an architecture-lowering layer that:
+
+- Consumes the WAT model
+- Builds an architecture-specific IR (optional but recommended)
+- Emits a canonical assembly dialect (plain text)
+
+The canonical assembly dialect must be:
+
+- Minimal
+- Deterministic
+- Free of legacy syntax (no AT&T vs Intel ambiguity)
+- Designed specifically for BADGER, not for external assemblers
+
+7.1 x86_64 (primary architecture)
+
+x86_64 is the first and primary architecture. Its lowering must support:
+
+- Integer arithmetic and logic
+- Comparisons and conditional branches
+- Function calls and returns
+- Stack-based calling convention
+- Local variables in registers and stack slots
+- Prologue and epilogue patterns
+
+The canonical x86_64 assembly dialect must include:
+
+- Register names: rax, rbx, rcx, rdx, rsi, rdi, rbp, rsp, r8–r15
+- Instructions such as:
+  - mov, add, sub, imul, idiv
+  - and, or, xor, not
+  - cmp, test
+  - jmp, je, jne, jl, jg, jle, jge
+  - call, ret
+  - push, pop
+- Memory operands of the form [reg+imm] where needed
+
+Other architectures (x86_32, x86_16, ARM64, ARM32) follow the same pattern with
+their own register sets and instruction subsets, defined in their respective
+sections of the repository documentation.
+
+8. Assembly encoding
+
+BADGER’s assembler component is responsible for:
+
+- Tokenizing the canonical assembly dialect
+- Parsing instructions and operands
+- Maintaining a symbol table for labels
+- Performing a two-pass assembly:
+  - First pass: compute label addresses and instruction sizes
+  - Second pass: encode instructions and patch branch/call offsets
+
+Each architecture must define:
+
+- Opcode tables
+- ModRM / SIB encoding rules (for x86)
+- Immediate and displacement encoding rules
+- Endianness rules
+
+BADGER must only support the instruction forms that CRAB’s WAT-lowering emits.
+It is not a general-purpose assembler and must not attempt to support arbitrary
+assembly syntax or instructions beyond those required by the lowering.
+
+9. Container emission
+
+9.1 Native (bare metal)
+
+Native binaries are flat binaries with:
+
+- No headers
+- No relocations
+- No symbol tables
+- No metadata
+
+The entrypoint is at offset 0. The binary is intended to be loaded directly at a
+fixed address by a bootloader, QEMU, or SHARK.
+
+BADGER must ensure that:
+
+- The code is position-fixed as required by the target environment
+- No relocations are assumed or required
+- The entrypoint symbol is well-defined in the lowering
+
+9.2 PE (Windows)
+
+PE binaries are minimal Portable Executable files with:
+
+- A valid DOS stub and PE header
+- A single code section containing the machine code
+- A defined entrypoint (AddressOfEntryPoint)
+- No imports, relocations, or debug information in the initial version
+
+BADGER must emit only the minimal structures required for Windows to load and
+execute the binary. It must not attempt to support the full PE feature set.
+
+10. Testing and verification
+
+BADGER must include a comprehensive test suite that:
+
+- Verifies WAT parsing for representative programs
+- Verifies WAT → assembly lowering for each architecture
+- Verifies assembly encoding for each supported instruction form
+- Verifies label resolution and branch/call correctness
+- Verifies Native binaries by running them under QEMU or an equivalent VM
+- Verifies PE binaries by running them on Windows
+
+Tests must be deterministic and must assert on:
+
+- Exact assembly output for given WAT input
+- Exact machine code bytes for given assembly input
+- Correct behavior of small end-to-end programs
+
+It is expected and acceptable that the test suite is larger than the BADGER
+implementation itself.
+
+11. Non-goals
+
+BADGER must not:
+
+- Emit ELF, .deb, or any Linux packaging or binary formats
+- Act as a general-purpose assembler for arbitrary user-written assembly
+- Support arbitrary external assembly syntaxes (NASM, GAS, MASM, etc.)
+- Implement dynamic linking, relocations, or symbol resolution beyond what is
+  required for its own containers
+- Parse WAT without CDTk
+
+12. Invariants
+
+BADGER must maintain the following invariants:
+
+- All WAT parsing is done via CDTk using the canonical WAT grammar.
+- All implementations are written in C#.
+- All outputs are either Native flat binaries or PE binaries.
+- All lowering preserves WAT semantics for the supported subset.
+- All architectures are modular and isolated.
+- All behavior is deterministic and reproducible.
+
+This specification is the single source of truth for BADGER’s architecture and
+behavior. Any implementation, extension, or refactor must remain consistent with
+this document.
