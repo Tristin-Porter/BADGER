@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Badger", "Badger\Badger.csproj", "{3A8C79CE-0072-48D7-9A66-4A8BB5AC6ED5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Badger", "Badger.csproj", "{3A8C79CE-0072-48D7-9A66-4A8BB5AC6ED5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
