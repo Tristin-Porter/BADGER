@@ -249,10 +249,10 @@ public class WATTokens : TokenSet
 // This provides the basic structure for the CDTk pipeline
 public class WATRules : RuleSet
 {
-    // For now, we'll handle WAT parsing in a simple direct manner in Program.cs
+    // Placeholder rule to establish the CDTk RuleSet structure
     // The full grammar will be implemented as CDTk's GLL parser matures
-    // This establishes the CDTk pipeline structure as required
-    public Rule DummyRule = new Rule("dummy:@I32Add");
+    // This establishes the CDTk pipeline architecture as required
+    public Rule PlaceholderRule = new Rule("placeholder:@I32Add");
 }
 
 public class Program

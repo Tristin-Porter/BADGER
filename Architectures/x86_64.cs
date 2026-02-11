@@ -253,6 +253,12 @@ public static class Assembler
     
     private static void EncodeMov(string dst, string src)
     {
+        // Guard against empty strings
+        if (string.IsNullOrEmpty(dst) || string.IsNullOrEmpty(src))
+        {
+            throw new ArgumentException("Invalid operands for MOV instruction");
+        }
+        
         if (src.StartsWith("[") && src.EndsWith("]"))
         {
             // MOV from memory

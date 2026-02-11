@@ -23,12 +23,12 @@ public class WATToARM32MapSet : MapSet
     pop {{r11, pc}}
 ";
 
-    public Map I32Add = "    pop {r0}\n    pop {r1}\n    add r0, r0, r1\n    push {r0}";
-    public Map I32Sub = "    pop {r1}\n    pop {r0}\n    sub r0, r0, r1\n    push {r0}";
-    public Map I32Mul = "    pop {r0}\n    pop {r1}\n    mul r0, r0, r1\n    push {r0}";
-    public Map I32Const = "    ldr r0, ={value}\n    push {r0}";
-    public Map LocalGet = "    ldr r0, [r11, #-{offset}]\n    push {r0}";
-    public Map LocalSet = "    pop {r0}\n    str r0, [r11, #-{offset}]";
+    public Map I32Add = "    pop {{r0}}\n    pop {{r1}}\n    add r0, r0, r1\n    push {{r0}}";
+    public Map I32Sub = "    pop {{r1}}\n    pop {{r0}}\n    sub r0, r0, r1\n    push {{r0}}";
+    public Map I32Mul = "    pop {{r0}}\n    pop {{r1}}\n    mul r0, r0, r1\n    push {{r0}}";
+    public Map I32Const = "    ldr r0, ={value}\n    push {{r0}}";
+    public Map LocalGet = "    ldr r0, [r11, #-{offset}]\n    push {{r0}}";
+    public Map LocalSet = "    pop {{r0}}\n    str r0, [r11, #-{offset}]";
     public Map Return = "    b .function_exit";
     public Map Call = "    bl {funcidx}";
     public Map Drop = "    add sp, sp, #4";
