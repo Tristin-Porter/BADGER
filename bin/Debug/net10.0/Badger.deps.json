@@ -1,0 +1,41 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "Badger/1.0.0": {
+        "dependencies": {
+          "CDTk": "9.0.0"
+        },
+        "runtime": {
+          "Badger.dll": {}
+        }
+      },
+      "CDTk/9.0.0": {
+        "runtime": {
+          "lib/net10.0/CDTk.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Badger/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "CDTk/9.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-XTSK3E33bsUu2C8x2aedE1kq2B/sqQZdntX/zHt3snJ74tTotWfTM7y3KwG45aehJEqkejtqvQxJ+IHrQT7SZA==",
+      "path": "cdtk/9.0.0",
+      "hashPath": "cdtk.9.0.0.nupkg.sha512"
+    }
+  }
+}

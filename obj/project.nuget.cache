@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "7RvD0c1Knn4=",
+  "success": true,
+  "projectFilePath": "/home/runner/work/BADGER/BADGER/Badger.csproj",
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/cdtk/9.0.0/cdtk.9.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
