@@ -350,7 +350,7 @@ public class Program
     public static void Main(string[] args)
     {
         // Run tests first
-        Testing.RunAllTests();
+        Testing.TestRunner.RunAllTests();
         
         Console.WriteLine();
         Console.WriteLine();
