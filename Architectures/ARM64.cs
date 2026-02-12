@@ -140,6 +140,12 @@ public static class Assembler
             case "mul":
                 EncodeMul(operands, code);
                 break;
+            case "sdiv":
+                EncodeSdiv(operands, code);
+                break;
+            case "udiv":
+                EncodeUdiv(operands, code);
+                break;
             case "and":
                 EncodeAnd(operands, code);
                 break;
@@ -151,6 +157,9 @@ public static class Assembler
                 break;
             case "cmp":
                 EncodeCmp(operands, code);
+                break;
+            case "cset":
+                EncodeCset(operands, code);
                 break;
             case "b":
                 EncodeB(operands, currentAddress, code, labels);
@@ -447,6 +456,56 @@ public static class Assembler
         AddInstruction(instruction, code);
     }
     
+    // SDIV: Signed divide
+    private static void EncodeSdiv(string operands, List<byte> code)
+    {
+        var parts = ParseOperands(operands);
+        if (parts.Length != 3)
+            throw new ArgumentException($"SDIV requires 3 operands: {operands}");
+        
+        bool is64 = Is64BitRegister(parts[0]);
+        int rd = GetRegisterNumber(parts[0]);
+        int rn = GetRegisterNumber(parts[1]);
+        int rm = GetRegisterNumber(parts[2]);
+        
+        // SDIV: sf 0 0 11010110 Rm 000011 Rn Rd
+        uint instruction = 0;
+        instruction |= (uint)(is64 ? 1 : 0) << 31; // sf
+        instruction |= 0b00u << 29; // op54
+        instruction |= 0b11010110u << 21; // fixed
+        instruction |= (uint)rm << 16; // Rm
+        instruction |= 0b000011u << 10; // opcode2
+        instruction |= (uint)rn << 5; // Rn
+        instruction |= (uint)rd; // Rd
+        
+        AddInstruction(instruction, code);
+    }
+    
+    // UDIV: Unsigned divide
+    private static void EncodeUdiv(string operands, List<byte> code)
+    {
+        var parts = ParseOperands(operands);
+        if (parts.Length != 3)
+            throw new ArgumentException($"UDIV requires 3 operands: {operands}");
+        
+        bool is64 = Is64BitRegister(parts[0]);
+        int rd = GetRegisterNumber(parts[0]);
+        int rn = GetRegisterNumber(parts[1]);
+        int rm = GetRegisterNumber(parts[2]);
+        
+        // UDIV: sf 0 0 11010110 Rm 000010 Rn Rd
+        uint instruction = 0;
+        instruction |= (uint)(is64 ? 1 : 0) << 31; // sf
+        instruction |= 0b00u << 29; // op54
+        instruction |= 0b11010110u << 21; // fixed
+        instruction |= (uint)rm << 16; // Rm
+        instruction |= 0b000010u << 10; // opcode2
+        instruction |= (uint)rn << 5; // Rn
+        instruction |= (uint)rd; // Rd
+        
+        AddInstruction(instruction, code);
+    }
+    
     // AND: Bitwise AND
     private static void EncodeAnd(string operands, List<byte> code)
     {
@@ -579,6 +638,48 @@ public static class Assembler
             
             AddInstruction(instruction, code);
         }
+    }
+    
+    // CSET: Conditional set (CSINC with Rn = XZR, Rm = XZR)
+    private static void EncodeCset(string operands, List<byte> code)
+    {
+        var parts = ParseOperands(operands);
+        if (parts.Length != 2)
+            throw new ArgumentException($"CSET requires 2 operands: {operands}");
+        
+        bool is64 = Is64BitRegister(parts[0]);
+        int rd = GetRegisterNumber(parts[0]);
+        
+        // Parse condition code (e.g., "eq", "ne", "lt", "gt")
+        var condStr = parts[1].Trim().ToLower();
+        uint cond;
+        switch (condStr)
+        {
+            case "eq": cond = 0b0000; break; // Equal
+            case "ne": cond = 0b0001; break; // Not equal
+            case "lt": cond = 0b1011; break; // Less than (signed)
+            case "gt": cond = 0b1100; break; // Greater than (signed)
+            case "le": cond = 0b1101; break; // Less or equal (signed)
+            case "ge": cond = 0b1010; break; // Greater or equal (signed)
+            default:
+                throw new ArgumentException($"Unsupported condition: {condStr}");
+        }
+        
+        // CSINC (CSET): sf 0 0 11010100 Rm=31 cond 01 Rn=31 Rd
+        // The condition is inverted in CSINC to achieve CSET behavior
+        uint invertedCond = cond ^ 1; // Invert least significant bit
+        
+        uint instruction = 0;
+        instruction |= (uint)(is64 ? 1 : 0) << 31; // sf
+        instruction |= 0b00u << 29; // op
+        instruction |= 0b11010100u << 21; // fixed
+        instruction |= 31u << 16; // Rm = XZR
+        instruction |= invertedCond << 12; // condition (inverted)
+        instruction |= 0b01u << 10; // op2 (for CSINC)
+        instruction |= 31u << 5; // Rn = XZR
+        instruction |= (uint)rd; // Rd
+        
+        AddInstruction(instruction, code);
     }
     
     // B: Unconditional branch

@@ -129,6 +129,24 @@ public static class Assembler
             case "mov":
                 EncodeMov(operands, code);
                 break;
+            case "moveq":
+                EncodeMovCond(operands, 0x0, code); // EQ condition
+                break;
+            case "movne":
+                EncodeMovCond(operands, 0x1, code); // NE condition
+                break;
+            case "movlt":
+                EncodeMovCond(operands, 0xB, code); // LT condition
+                break;
+            case "movge":
+                EncodeMovCond(operands, 0xA, code); // GE condition
+                break;
+            case "movgt":
+                EncodeMovCond(operands, 0xC, code); // GT condition
+                break;
+            case "movle":
+                EncodeMovCond(operands, 0xD, code); // LE condition
+                break;
             case "add":
                 EncodeAdd(operands, code);
                 break;
@@ -137,6 +155,12 @@ public static class Assembler
                 break;
             case "mul":
                 EncodeMul(operands, code);
+                break;
+            case "sdiv":
+                EncodeSdiv(operands, code);
+                break;
+            case "udiv":
+                EncodeUdiv(operands, code);
                 break;
             case "and":
                 EncodeAnd(operands, code);
@@ -481,6 +505,77 @@ public static class Assembler
         instruction |= (uint)rd << 16; // Rd
         instruction |= (uint)rm << 8; // Rm
         instruction |= (uint)rn; // Rn
+        
+        AddInstruction(instruction, code);
+    }
+    
+    // SDIV: Signed divide (ARMv7-A and later)
+    private static void EncodeSdiv(string operands, List<byte> code)
+    {
+        var parts = ParseOperands(operands);
+        if (parts.Length != 3)
+            throw new ArgumentException($"SDIV requires 3 operands: {operands}");
+        
+        int rd = GetRegisterNumber(parts[0]);
+        int rn = GetRegisterNumber(parts[1]);
+        int rm = GetRegisterNumber(parts[2]);
+        
+        // SDIV encoding: cond=1110 0111 0001 Rd 1111 Rm 0001 Rn
+        uint instruction = 0xE710F010;
+        instruction |= (uint)rd << 16; // Rd
+        instruction |= (uint)rm << 8; // Rm
+        instruction |= (uint)rn; // Rn
+        
+        AddInstruction(instruction, code);
+    }
+    
+    // UDIV: Unsigned divide (ARMv7-A and later)
+    private static void EncodeUdiv(string operands, List<byte> code)
+    {
+        var parts = ParseOperands(operands);
+        if (parts.Length != 3)
+            throw new ArgumentException($"UDIV requires 3 operands: {operands}");
+        
+        int rd = GetRegisterNumber(parts[0]);
+        int rn = GetRegisterNumber(parts[1]);
+        int rm = GetRegisterNumber(parts[2]);
+        
+        // UDIV encoding: cond=1110 0111 0011 Rd 1111 Rm 0001 Rn
+        uint instruction = 0xE730F010;
+        instruction |= (uint)rd << 16; // Rd
+        instruction |= (uint)rm << 8; // Rm
+        instruction |= (uint)rn; // Rn
+        
+        AddInstruction(instruction, code);
+    }
+    
+    // MOV with condition: Conditional move
+    private static void EncodeMovCond(string operands, uint cond, List<byte> code)
+    {
+        var parts = ParseOperands(operands);
+        if (parts.Length != 2)
+            throw new ArgumentException($"Conditional MOV requires 2 operands: {operands}");
+        
+        var dst = parts[0];
+        var src = parts[1];
+        
+        int rd = GetRegisterNumber(dst);
+        
+        // Only support immediate moves for conditional moves
+        if (!src.StartsWith("#"))
+            throw new ArgumentException($"Conditional MOV only supports immediate values: {src}");
+        
+        var immStr = src.Substring(1);
+        if (!int.TryParse(immStr, out int imm))
+            throw new ArgumentException($"Invalid immediate: {src}");
+        
+        if (!TryEncodeImmediate(imm, out uint encoded))
+            throw new ArgumentException($"Immediate value {imm} cannot be encoded in ARM32 MOV");
+        
+        // MOV (immediate) with condition: cond 001 1101 S=0 Rn=0000 Rd imm12
+        uint instruction = (cond << 28) | 0x03A00000;
+        instruction |= (uint)rd << 12; // Rd
+        instruction |= encoded; // imm12 (4-bit rotate + 8-bit immediate)
         
         AddInstruction(instruction, code);
     }

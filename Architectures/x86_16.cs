@@ -178,6 +178,15 @@ public static class Assembler
             case "imul":
                 EncodeIMul(parts[1], parts[2], code);
                 break;
+            case "idiv":
+                EncodeIdiv(parts[1], code);
+                break;
+            case "div":
+                EncodeDiv(parts[1], code);
+                break;
+            case "cwd":
+                EncodeCwd(code);
+                break;
             case "and":
                 EncodeAnd(parts[1], parts[2], code);
                 break;
@@ -373,6 +382,26 @@ public static class Assembler
         code.Add(0x0F);
         code.Add(0xAF);
         code.Add((byte)(0xC0 | (GetRegisterCode(dst) << 3) | GetRegisterCode(src)));
+    }
+    
+    private static void EncodeIdiv(string src, List<byte> code)
+    {
+        // IDIV r/m16 (signed divide DX:AX by r/m16, quotient in AX, remainder in DX)
+        code.Add(0xF7);
+        code.Add((byte)(0xF8 + GetRegisterCode(src))); // ModR/M: mod=11, reg=111 (/7), r/m=src
+    }
+    
+    private static void EncodeDiv(string src, List<byte> code)
+    {
+        // DIV r/m16 (unsigned divide DX:AX by r/m16, quotient in AX, remainder in DX)
+        code.Add(0xF7);
+        code.Add((byte)(0xF0 + GetRegisterCode(src))); // ModR/M: mod=11, reg=110 (/6), r/m=src
+    }
+    
+    private static void EncodeCwd(List<byte> code)
+    {
+        // CWD (convert word to doubleword: sign-extend AX into DX:AX)
+        code.Add(0x99);
     }
     
     private static void EncodeAnd(string dst, string src, List<byte> code)
