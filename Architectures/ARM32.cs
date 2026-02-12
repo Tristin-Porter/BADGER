@@ -26,12 +26,40 @@ public class WATToARM32MapSet : MapSet
     public Map I32Add = "    pop {{r0}}\n    pop {{r1}}\n    add r0, r0, r1\n    push {{r0}}";
     public Map I32Sub = "    pop {{r1}}\n    pop {{r0}}\n    sub r0, r0, r1\n    push {{r0}}";
     public Map I32Mul = "    pop {{r0}}\n    pop {{r1}}\n    mul r0, r0, r1\n    push {{r0}}";
+    public Map I32DivS = "    pop {{r1}}\n    pop {{r0}}\n    sdiv r0, r0, r1\n    push {{r0}}";
+    public Map I32DivU = "    pop {{r1}}\n    pop {{r0}}\n    udiv r0, r0, r1\n    push {{r0}}";
+    
     public Map I32Const = "    ldr r0, ={value}\n    push {{r0}}";
+    
+    // Logical operations
+    public Map I32And = "    pop {{r0}}\n    pop {{r1}}\n    and r0, r0, r1\n    push {{r0}}";
+    public Map I32Or = "    pop {{r0}}\n    pop {{r1}}\n    orr r0, r0, r1\n    push {{r0}}";
+    public Map I32Xor = "    pop {{r0}}\n    pop {{r1}}\n    eor r0, r0, r1\n    push {{r0}}";
+    
+    // Comparison operations
+    public Map I32Eq = "    pop {{r1}}\n    pop {{r0}}\n    cmp r0, r1\n    moveq r0, #1\n    movne r0, #0\n    push {{r0}}";
+    public Map I32Ne = "    pop {{r1}}\n    pop {{r0}}\n    cmp r0, r1\n    movne r0, #1\n    moveq r0, #0\n    push {{r0}}";
+    public Map I32LtS = "    pop {{r1}}\n    pop {{r0}}\n    cmp r0, r1\n    movlt r0, #1\n    movge r0, #0\n    push {{r0}}";
+    public Map I32GtS = "    pop {{r1}}\n    pop {{r0}}\n    cmp r0, r1\n    movgt r0, #1\n    movle r0, #0\n    push {{r0}}";
+    
+    // Local variables
     public Map LocalGet = "    ldr r0, [r11, #-{offset}]\n    push {{r0}}";
     public Map LocalSet = "    pop {{r0}}\n    str r0, [r11, #-{offset}]";
+    public Map LocalTee = "    pop {{r0}}\n    str r0, [r11, #-{offset}]\n    push {{r0}}";
+    
+    // Control flow
     public Map Return = "    b .function_exit";
     public Map Call = "    bl {funcidx}";
+    public Map Br = "    b {labelidx}";
+    public Map BrIf = "    pop {{r0}}\n    cmp r0, #0\n    bne {labelidx}";
+    
+    // Memory operations
+    public Map I32Load = "    pop {{r0}}\n    ldr r0, [r0, #{offset}]\n    push {{r0}}";
+    public Map I32Store = "    pop {{r1}}\n    pop {{r0}}\n    str r1, [r0, #{offset}]";
+    
+    // Stack operations
     public Map Drop = "    add sp, sp, #4";
+    public Map Nop = "    nop";
 }
 
 // Part 2: ARM32 Assembler

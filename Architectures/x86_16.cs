@@ -27,12 +27,40 @@ public class WATToX86_16MapSet : MapSet
     public Map I32Add = "    pop ax\n    pop bx\n    add ax, bx\n    push ax";
     public Map I32Sub = "    pop bx\n    pop ax\n    sub ax, bx\n    push ax";
     public Map I32Mul = "    pop ax\n    pop bx\n    imul ax, bx\n    push ax";
+    public Map I32DivS = "    pop bx\n    pop ax\n    cwd\n    idiv bx\n    push ax";
+    public Map I32DivU = "    pop bx\n    pop ax\n    xor dx, dx\n    div bx\n    push ax";
+    
     public Map I32Const = "    mov ax, {value}\n    push ax";
+    
+    // Logical operations
+    public Map I32And = "    pop ax\n    pop bx\n    and ax, bx\n    push ax";
+    public Map I32Or = "    pop ax\n    pop bx\n    or ax, bx\n    push ax";
+    public Map I32Xor = "    pop ax\n    pop bx\n    xor ax, bx\n    push ax";
+    
+    // Comparison operations
+    public Map I32Eq = "    pop bx\n    pop ax\n    cmp ax, bx\n    sete al\n    movzx ax, al\n    push ax";
+    public Map I32Ne = "    pop bx\n    pop ax\n    cmp ax, bx\n    setne al\n    movzx ax, al\n    push ax";
+    public Map I32LtS = "    pop bx\n    pop ax\n    cmp ax, bx\n    setl al\n    movzx ax, al\n    push ax";
+    public Map I32GtS = "    pop bx\n    pop ax\n    cmp ax, bx\n    setg al\n    movzx ax, al\n    push ax";
+    
+    // Local variables
     public Map LocalGet = "    mov ax, [bp - {offset}]\n    push ax";
     public Map LocalSet = "    pop ax\n    mov [bp - {offset}], ax";
+    public Map LocalTee = "    pop ax\n    mov [bp - {offset}], ax\n    push ax";
+    
+    // Control flow
     public Map Return = "    jmp .function_exit";
     public Map Call = "    call {funcidx}";
+    public Map Br = "    jmp {labelidx}";
+    public Map BrIf = "    pop ax\n    test ax, ax\n    jnz {labelidx}";
+    
+    // Memory operations
+    public Map I32Load = "    pop ax\n    mov ax, [ax + {offset}]\n    push ax";
+    public Map I32Store = "    pop bx\n    pop ax\n    mov [ax + {offset}], bx";
+    
+    // Stack operations
     public Map Drop = "    add sp, 2";
+    public Map Nop = "    nop";
 }
 
 // Part 2: x86_16 Assembler - converts assembly text to machine code

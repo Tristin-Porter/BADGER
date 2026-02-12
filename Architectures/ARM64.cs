@@ -28,12 +28,40 @@ public class WATToARM64MapSet : MapSet
     public Map I32Add = "    ldr w0, [sp], #4\n    ldr w1, [sp], #4\n    add w0, w0, w1\n    str w0, [sp, #-4]!";
     public Map I32Sub = "    ldr w1, [sp], #4\n    ldr w0, [sp], #4\n    sub w0, w0, w1\n    str w0, [sp, #-4]!";
     public Map I32Mul = "    ldr w0, [sp], #4\n    ldr w1, [sp], #4\n    mul w0, w0, w1\n    str w0, [sp, #-4]!";
+    public Map I32DivS = "    ldr w1, [sp], #4\n    ldr w0, [sp], #4\n    sdiv w0, w0, w1\n    str w0, [sp, #-4]!";
+    public Map I32DivU = "    ldr w1, [sp], #4\n    ldr w0, [sp], #4\n    udiv w0, w0, w1\n    str w0, [sp, #-4]!";
+    
     public Map I32Const = "    mov w0, #{value}\n    str w0, [sp, #-4]!";
+    
+    // Logical operations
+    public Map I32And = "    ldr w0, [sp], #4\n    ldr w1, [sp], #4\n    and w0, w0, w1\n    str w0, [sp, #-4]!";
+    public Map I32Or = "    ldr w0, [sp], #4\n    ldr w1, [sp], #4\n    orr w0, w0, w1\n    str w0, [sp, #-4]!";
+    public Map I32Xor = "    ldr w0, [sp], #4\n    ldr w1, [sp], #4\n    eor w0, w0, w1\n    str w0, [sp, #-4]!";
+    
+    // Comparison operations
+    public Map I32Eq = "    ldr w1, [sp], #4\n    ldr w0, [sp], #4\n    cmp w0, w1\n    cset w0, eq\n    str w0, [sp, #-4]!";
+    public Map I32Ne = "    ldr w1, [sp], #4\n    ldr w0, [sp], #4\n    cmp w0, w1\n    cset w0, ne\n    str w0, [sp, #-4]!";
+    public Map I32LtS = "    ldr w1, [sp], #4\n    ldr w0, [sp], #4\n    cmp w0, w1\n    cset w0, lt\n    str w0, [sp, #-4]!";
+    public Map I32GtS = "    ldr w1, [sp], #4\n    ldr w0, [sp], #4\n    cmp w0, w1\n    cset w0, gt\n    str w0, [sp, #-4]!";
+    
+    // Local variables
     public Map LocalGet = "    ldr w0, [x29, #-{offset}]\n    str w0, [sp, #-4]!";
     public Map LocalSet = "    ldr w0, [sp], #4\n    str w0, [x29, #-{offset}]";
+    public Map LocalTee = "    ldr w0, [sp], #4\n    str w0, [x29, #-{offset}]\n    str w0, [sp, #-4]!";
+    
+    // Control flow
     public Map Return = "    b .function_exit";
     public Map Call = "    bl {funcidx}";
+    public Map Br = "    b {labelidx}";
+    public Map BrIf = "    ldr w0, [sp], #4\n    cmp w0, #0\n    b.ne {labelidx}";
+    
+    // Memory operations
+    public Map I32Load = "    ldr w0, [sp], #4\n    ldr w0, [w0, #{offset}]\n    str w0, [sp, #-4]!";
+    public Map I32Store = "    ldr w1, [sp], #4\n    ldr w0, [sp], #4\n    str w1, [w0, #{offset}]";
+    
+    // Stack operations
     public Map Drop = "    add sp, sp, #4";
+    public Map Nop = "    nop";
 }
 
 // Part 2: ARM64 Assembler - converts assembly text to machine code
