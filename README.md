@@ -182,13 +182,17 @@ BADGER is not a general-purpose assembler. It only supports:
 
 ## Testing
 
-BADGER includes a comprehensive test suite with 45+ tests:
+BADGER includes a comprehensive test suite with 45+ tests. The test suite **automatically runs on every startup** before any compilation:
 
 ```bash
+# Run without arguments to see tests and usage
 dotnet run
+
+# Tests run before compilation even with arguments
+dotnet run input.wat -o output.bin
 ```
 
-The test suite automatically runs on startup and covers:
+The test suite covers:
 - WAT parsing and grammar
 - WAT to assembly lowering for each architecture
 - Assembly encoding and instruction generation
