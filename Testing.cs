@@ -63,8 +63,7 @@ public static class Testing
         else
         {
             failedTests++;
-            string fullMessage = string.IsNullOrEmpty(message) ? testName : $"{testName}: {message}";
-            failures.Add(fullMessage);
+            failures.Add(string.IsNullOrEmpty(message) ? testName : $"{testName}: {message}");
             Console.WriteLine($"✗ {testName}");
             if (!string.IsNullOrEmpty(message))
             {
@@ -292,7 +291,7 @@ start:
     nop
 middle:
     nop
-end:
+function_end:
     ret
 ";
         
@@ -310,9 +309,9 @@ end:
         // Test forward and backward label references
         string jumpAsm = @"
 main:
-    jmp end
+    jmp jump_target
     nop
-end:
+jump_target:
     ret
 ";
         

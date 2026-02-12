@@ -231,6 +231,11 @@ public static class Assembler
         };
     }
     
+    private static bool IsImmediate(string operand)
+    {
+        return !string.IsNullOrEmpty(operand) && (char.IsDigit(operand[0]) || operand[0] == '-');
+    }
+    
     // Instruction encoders (simplified)
     private static void EncodePush(string operand)
     {
@@ -274,7 +279,7 @@ public static class Assembler
             code.Add(0x89); // MOV r/m64, r64
             code.Add(0x00);
         }
-        else if (char.IsDigit(src[0]) || src[0] == '-')
+        else if (IsImmediate(src))
         {
             // MOV immediate
             code.Add(0x48); // REX.W
@@ -293,7 +298,7 @@ public static class Assembler
     private static void EncodeAdd(string dst, string src)
     {
         // Check if src is immediate
-        if (char.IsDigit(src[0]) || src[0] == '-')
+        if (IsImmediate(src))
         {
             int imm = int.Parse(src);
             code.Add(0x48); // REX.W
@@ -323,7 +328,7 @@ public static class Assembler
     private static void EncodeSub(string dst, string src)
     {
         // Check if src is immediate
-        if (char.IsDigit(src[0]) || src[0] == '-')
+        if (IsImmediate(src))
         {
             int imm = int.Parse(src);
             code.Add(0x48); // REX.W
