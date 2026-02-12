@@ -245,20 +245,116 @@ public class WATTokens : TokenSet
     public Token BlockComment = new Token(@"\(\;.*?\;\)", RegexOptions.Singleline).Ignore();
 }
 
-// Simplified WAT Grammar rules (can be expanded as CDTk matures)
-// This provides the basic structure for the CDTk pipeline
+// Complete WAT Grammar rules using CDTk
 public class WATRules : RuleSet
 {
-    // Placeholder rule to establish the CDTk RuleSet structure
-    // The full grammar will be implemented as CDTk's GLL parser matures
-    // This establishes the CDTk pipeline architecture as required
-    public Rule PlaceholderRule = new Rule("placeholder:@I32Add");
+    // Top-level module structure
+    public Rule Module = new Rule("module:@LeftParen @Module id:@Identifier? fields:ModuleField* @RightParen");
+    
+    // Module fields (functions, types, imports, exports, etc.)
+    public Rule ModuleField = new Rule("modulefield:FunctionDef | TypeDef | Import | Export | Memory | Table | Global | Data | Elem | Start");
+    
+    // Type definitions
+    public Rule TypeDef = new Rule("typedef:@LeftParen @Type id:@Identifier? @LeftParen @Func params:Param* results:Result* @RightParen @RightParen");
+    
+    // Function definitions
+    public Rule FunctionDef = new Rule("funcdef:@LeftParen @Func id:@Identifier? typeidx:TypeUse? params:Param* results:Result* locals:Local* instrs:Instruction* @RightParen");
+    public Rule TypeUse = new Rule("typeuse:@LeftParen @Type idx:Index @RightParen");
+    public Rule Param = new Rule("param:@LeftParen @Param id:@Identifier? valtype:ValueType @RightParen");
+    public Rule Result = new Rule("result:@LeftParen @Result valtype:ValueType @RightParen");
+    public Rule Local = new Rule("local:@LeftParen @Local id:@Identifier? valtype:ValueType @RightParen");
+    
+    // Imports and exports
+    public Rule Import = new Rule("import:@LeftParen @Import module:@String name:@String importdesc:ImportDesc @RightParen");
+    public Rule ImportDesc = new Rule("importdesc:@LeftParen @Func id:@Identifier? typeidx:TypeUse @RightParen | @LeftParen @Memory limits:Limits @RightParen | @LeftParen @Table tabletype:TableType @RightParen | @LeftParen @Global globaltype:GlobalType @RightParen");
+    public Rule Export = new Rule("export:@LeftParen @Export name:@String exportdesc:ExportDesc @RightParen");
+    public Rule ExportDesc = new Rule("exportdesc:@LeftParen @Func idx:Index @RightParen | @LeftParen @Memory idx:Index @RightParen | @LeftParen @Table idx:Index @RightParen | @LeftParen @Global idx:Index @RightParen");
+    
+    // Memory and table
+    public Rule Memory = new Rule("memory:@LeftParen @Memory id:@Identifier? limits:Limits @RightParen");
+    public Rule Table = new Rule("table:@LeftParen @Table id:@Identifier? tabletype:TableType @RightParen");
+    public Rule Limits = new Rule("limits:min:@Integer max:@Integer?");
+    public Rule TableType = new Rule("tabletype:limits:Limits elemtype:RefType");
+    
+    // Globals
+    public Rule Global = new Rule("global:@LeftParen @Global id:@Identifier? globaltype:GlobalType init:ConstExpr @RightParen");
+    public Rule GlobalType = new Rule("globaltype:@LeftParen @Mut valtype:ValueType @RightParen | valtype:ValueType");
+    public Rule ConstExpr = new Rule("constexpr:instr:Instruction+");
+    
+    // Data and element segments
+    public Rule Data = new Rule("data:@LeftParen @Data idx:Index? offset:ConstExpr? bytes:@String* @RightParen");
+    public Rule Elem = new Rule("elem:@LeftParen @Elem idx:Index? offset:ConstExpr? funcidx:Index* @RightParen");
+    
+    // Start function
+    public Rule Start = new Rule("start:@LeftParen @Start idx:Index @RightParen");
+    
+    // Instructions (comprehensive set)
+    public Rule Instruction = new Rule("instr:ControlInstr | NumericInstr | VariableInstr | MemoryInstr | ParametricInstr");
+    
+    // Control flow instructions
+    public Rule ControlInstr = new Rule("controlinstr:Block | Loop | If | Br | BrIf | BrTable | Return | Call | CallIndirect");
+    public Rule Block = new Rule("block:@LeftParen @Block id:@Identifier? blocktype:BlockType instrs:Instruction* @RightParen @End?");
+    public Rule Loop = new Rule("loop:@LeftParen @Loop id:@Identifier? blocktype:BlockType instrs:Instruction* @RightParen @End?");
+    public Rule If = new Rule("if:@LeftParen @If id:@Identifier? blocktype:BlockType then:ThenClause else:ElseClause? @RightParen @End?");
+    public Rule ThenClause = new Rule("then:@LeftParen @Then instrs:Instruction* @RightParen | instrs:Instruction*");
+    public Rule ElseClause = new Rule("else:@LeftParen @Else instrs:Instruction* @RightParen");
+    public Rule BlockType = new Rule("blocktype:@LeftParen @Result valtype:ValueType @RightParen | ValueType?");
+    
+    public Rule Br = new Rule("br:@Br labelidx:Index");
+    public Rule BrIf = new Rule("brif:@BrIf labelidx:Index");
+    public Rule BrTable = new Rule("brtable:@BrTable labelidx:Index+ default:Index");
+    public Rule Return = new Rule("return:@Return");
+    public Rule Call = new Rule("call:@Call funcidx:Index");
+    public Rule CallIndirect = new Rule("callindirect:@CallIndirect typeidx:TypeUse");
+    
+    // Numeric instructions
+    public Rule NumericInstr = new Rule("numericinstr:I32Instr | I64Instr | F32Instr | F64Instr | ConversionInstr");
+    
+    // i32 instructions
+    public Rule I32Instr = new Rule("i32instr:@I32Const val:IntLiteral | @I32Clz | @I32Ctz | @I32Popcnt | @I32Add | @I32Sub | @I32Mul | @I32DivS | @I32DivU | @I32RemS | @I32RemU | @I32And | @I32Or | @I32Xor | @I32Shl | @I32ShrS | @I32ShrU | @I32Rotl | @I32Rotr | @I32Eqz | @I32Eq | @I32Ne | @I32LtS | @I32LtU | @I32GtS | @I32GtU | @I32LeS | @I32LeU | @I32GeS | @I32GeU");
+    
+    // i64 instructions
+    public Rule I64Instr = new Rule("i64instr:@I64Const val:IntLiteral | @I64Clz | @I64Ctz | @I64Popcnt | @I64Add | @I64Sub | @I64Mul | @I64DivS | @I64DivU | @I64RemS | @I64RemU | @I64And | @I64Or | @I64Xor | @I64Shl | @I64ShrS | @I64ShrU | @I64Rotl | @I64Rotr | @I64Eqz | @I64Eq | @I64Ne | @I64LtS | @I64LtU | @I64GtS | @I64GtU | @I64LeS | @I64LeU | @I64GeS | @I64GeU");
+    
+    // f32 instructions
+    public Rule F32Instr = new Rule("f32instr:@F32Const val:FloatLiteral | @F32Abs | @F32Neg | @F32Ceil | @F32Floor | @F32Trunc | @F32Nearest | @F32Sqrt | @F32Add | @F32Sub | @F32Mul | @F32Div | @F32Min | @F32Max | @F32Copysign | @F32Eq | @F32Ne | @F32Lt | @F32Gt | @F32Le | @F32Ge");
+    
+    // f64 instructions
+    public Rule F64Instr = new Rule("f64instr:@F64Const val:FloatLiteral | @F64Abs | @F64Neg | @F64Ceil | @F64Floor | @F64Trunc | @F64Nearest | @F64Sqrt | @F64Add | @F64Sub | @F64Mul | @F64Div | @F64Min | @F64Max | @F64Copysign | @F64Eq | @F64Ne | @F64Lt | @F64Gt | @F64Le | @F64Ge");
+    
+    // Conversion instructions
+    public Rule ConversionInstr = new Rule("conversioninstr:@I32WrapI64 | @I32TruncF32S | @I32TruncF32U | @I32TruncF64S | @I32TruncF64U | @I64ExtendI32S | @I64ExtendI32U | @I64TruncF32S | @I64TruncF32U | @I64TruncF64S | @I64TruncF64U | @F32ConvertI32S | @F32ConvertI32U | @F32ConvertI64S | @F32ConvertI64U | @F32DemoteF64 | @F64ConvertI32S | @F64ConvertI32U | @F64ConvertI64S | @F64ConvertI64U | @F64PromoteF32 | @I32ReinterpretF32 | @I64ReinterpretF64 | @F32ReinterpretI32 | @F64ReinterpretI64");
+    
+    // Variable instructions
+    public Rule VariableInstr = new Rule("variableinstr:@LocalGet idx:Index | @LocalSet idx:Index | @LocalTee idx:Index | @GlobalGet idx:Index | @GlobalSet idx:Index");
+    
+    // Memory instructions
+    public Rule MemoryInstr = new Rule("memoryinstr:@I32Load memarg:MemArg? | @I64Load memarg:MemArg? | @F32Load memarg:MemArg? | @F64Load memarg:MemArg? | @I32Load8S memarg:MemArg? | @I32Load8U memarg:MemArg? | @I32Load16S memarg:MemArg? | @I32Load16U memarg:MemArg? | @I64Load8S memarg:MemArg? | @I64Load8U memarg:MemArg? | @I64Load16S memarg:MemArg? | @I64Load16U memarg:MemArg? | @I64Load32S memarg:MemArg? | @I64Load32U memarg:MemArg? | @I32Store memarg:MemArg? | @I64Store memarg:MemArg? | @F32Store memarg:MemArg? | @F64Store memarg:MemArg? | @I32Store8 memarg:MemArg? | @I32Store16 memarg:MemArg? | @I64Store8 memarg:MemArg? | @I64Store16 memarg:MemArg? | @I64Store32 memarg:MemArg? | @MemorySize | @MemoryGrow");
+    public Rule MemArg = new Rule("memarg:offset:@Integer? align:@Integer?");
+    
+    // Parametric instructions
+    public Rule ParametricInstr = new Rule("parametricinstr:@Drop | @Select | @Nop | @Unreachable");
+    
+    // Value types
+    public Rule ValueType = new Rule("valuetype:@I32Type | @I64Type | @F32Type | @F64Type | @FuncrefType | @ExternrefType");
+    public Rule RefType = new Rule("reftype:@FuncrefType | @ExternrefType");
+    
+    // Indices and literals
+    public Rule Index = new Rule("index:@Identifier | @Integer");
+    public Rule IntLiteral = new Rule("intliteral:@Integer | @HexInteger");
+    public Rule FloatLiteral = new Rule("floatliteral:@Float | @HexFloat");
 }
 
 public class Program
 {
     public static void Main(string[] args)
     {
+        // Run tests first
+        Testing.TestRunner.RunAllTests();
+        
+        Console.WriteLine();
+        Console.WriteLine();
+        
         if (args.Length == 0)
         {
             Console.WriteLine("BADGER - Better Assembler for Dependable Generation of Efficient Results");

@@ -231,6 +231,11 @@ public static class Assembler
         };
     }
     
+    private static bool IsImmediate(string operand)
+    {
+        return !string.IsNullOrEmpty(operand) && (char.IsDigit(operand[0]) || operand[0] == '-');
+    }
+    
     // Instruction encoders (simplified)
     private static void EncodePush(string operand)
     {
@@ -274,7 +279,7 @@ public static class Assembler
             code.Add(0x89); // MOV r/m64, r64
             code.Add(0x00);
         }
-        else if (char.IsDigit(src[0]) || src[0] == '-')
+        else if (IsImmediate(src))
         {
             // MOV immediate
             code.Add(0x48); // REX.W
@@ -292,16 +297,62 @@ public static class Assembler
     
     private static void EncodeAdd(string dst, string src)
     {
-        code.Add(0x48); // REX.W
-        code.Add(0x01); // ADD r/m64, r64
-        code.Add((byte)(0xC0 | (GetRegisterCode(src) << 3) | GetRegisterCode(dst)));
+        // Check if src is immediate
+        if (IsImmediate(src))
+        {
+            int imm = int.Parse(src);
+            code.Add(0x48); // REX.W
+            if (imm >= -128 && imm <= 127)
+            {
+                // ADD r/m64, imm8
+                code.Add(0x83);
+                code.Add((byte)(0xC0 | GetRegisterCode(dst)));
+                code.Add((byte)imm);
+            }
+            else
+            {
+                // ADD r/m64, imm32
+                code.Add(0x81);
+                code.Add((byte)(0xC0 | GetRegisterCode(dst)));
+                AddImmediate32(imm);
+            }
+        }
+        else
+        {
+            code.Add(0x48); // REX.W
+            code.Add(0x01); // ADD r/m64, r64
+            code.Add((byte)(0xC0 | (GetRegisterCode(src) << 3) | GetRegisterCode(dst)));
+        }
     }
     
     private static void EncodeSub(string dst, string src)
     {
-        code.Add(0x48); // REX.W
-        code.Add(0x29); // SUB r/m64, r64
-        code.Add((byte)(0xC0 | (GetRegisterCode(src) << 3) | GetRegisterCode(dst)));
+        // Check if src is immediate
+        if (IsImmediate(src))
+        {
+            int imm = int.Parse(src);
+            code.Add(0x48); // REX.W
+            if (imm >= -128 && imm <= 127)
+            {
+                // SUB r/m64, imm8
+                code.Add(0x83);
+                code.Add((byte)(0xE8 | GetRegisterCode(dst)));
+                code.Add((byte)imm);
+            }
+            else
+            {
+                // SUB r/m64, imm32
+                code.Add(0x81);
+                code.Add((byte)(0xE8 | GetRegisterCode(dst)));
+                AddImmediate32(imm);
+            }
+        }
+        else
+        {
+            code.Add(0x48); // REX.W
+            code.Add(0x29); // SUB r/m64, r64
+            code.Add((byte)(0xC0 | (GetRegisterCode(src) << 3) | GetRegisterCode(dst)));
+        }
     }
     
     private static void EncodeIMul(string dst, string src)

@@ -1,0 +1,47 @@
+// ARM64 sample assembly showing all instruction types
+start:
+    // Function prologue
+    stp x29, x30, [sp, #-16]!
+    mov x29, sp
+    sub sp, sp, #32
+    
+    // Arithmetic operations
+    mov x0, #10
+    mov x1, #20
+    add x2, x0, x1
+    sub x3, x2, x0
+    mul x4, x1, x2
+    
+    // Logical operations
+    and x5, x0, x1
+    orr x6, x2, x3
+    eor x7, x4, x5
+    
+    // Comparison and branches
+    cmp x0, x1
+    b.eq equal
+    b.ne not_equal
+    b.lt less_than
+    b.gt greater_than
+    b done
+    
+equal:
+    mov x0, #1
+    b done
+    
+not_equal:
+    mov x0, #2
+    b done
+    
+less_than:
+    mov x0, #3
+    b done
+    
+greater_than:
+    mov x0, #4
+    
+done:
+    // Function epilogue
+    mov sp, x29
+    ldp x29, x30, [sp], #16
+    ret
