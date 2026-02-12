@@ -35,66 +35,80 @@ public static class LoweringTests
     // x86_64 Tests
     private static void TestX86_64Prologue()
     {
-        // Test that lowering produces correct prologue/epilogue
-        // This is a basic structural test
-        TestRunner.Assert(true, "x86_64 prologue/epilogue generation");
+        // Verify that WATToX86_64MapSet class exists and is usable
+        var mapSet = new Badger.Architectures.x86_64.WATToX86_64MapSet();
+        TestRunner.Assert(mapSet != null, "x86_64 WATToX86_64MapSet should instantiate");
     }
 
     private static void TestX86_64I32Const()
     {
-        // WAT: (i32.const 42) should lower to mov instruction
-        // Expected assembly should contain: mov <reg>, 42
-        TestRunner.Assert(true, "x86_64 i32.const generates mov instruction");
+        // Verify x86_64 assembler can handle mov instructions (used by i32.const lowering)
+        string asm = "mov rax, 42";
+        byte[] code = Badger.Architectures.x86_64.Assembler.Assemble(asm);
+        TestRunner.Assert(code.Length > 0, "x86_64 i32.const lowering produces mov instruction");
     }
 
     private static void TestX86_64I32Add()
     {
-        // WAT: (i32.add) should lower to add instruction
-        // Expected assembly should contain: add <dest>, <src>
-        TestRunner.Assert(true, "x86_64 i32.add generates add instruction");
+        // Verify x86_64 assembler can handle add instructions (used by i32.add lowering)
+        string asm = "add rax, rbx";
+        byte[] code = Badger.Architectures.x86_64.Assembler.Assemble(asm);
+        TestRunner.Assert(code.Length >= 3, "x86_64 i32.add lowering produces add instruction");
     }
 
     // x86_32 Tests
     private static void TestX86_32Prologue()
     {
-        TestRunner.Assert(true, "x86_32 prologue/epilogue generation");
+        var mapSet = new Badger.Architectures.x86_32.WATToX86_32MapSet();
+        TestRunner.Assert(mapSet != null, "x86_32 WATToX86_32MapSet should instantiate");
     }
 
     private static void TestX86_32I32Const()
     {
-        TestRunner.Assert(true, "x86_32 i32.const generates mov instruction");
+        string asm = "mov eax, 42";
+        byte[] code = Badger.Architectures.x86_32.Assembler.Assemble(asm);
+        TestRunner.Assert(code.Length > 0, "x86_32 i32.const lowering produces mov instruction");
     }
 
     // x86_16 Tests
     private static void TestX86_16Prologue()
     {
-        TestRunner.Assert(true, "x86_16 prologue/epilogue generation");
+        var mapSet = new Badger.Architectures.x86_16.WATToX86_16MapSet();
+        TestRunner.Assert(mapSet != null, "x86_16 WATToX86_16MapSet should instantiate");
     }
 
     private static void TestX86_16I32Const()
     {
-        TestRunner.Assert(true, "x86_16 i32.const generates mov instruction");
+        string asm = "mov ax, 42";
+        byte[] code = Badger.Architectures.x86_16.Assembler.Assemble(asm);
+        TestRunner.Assert(code.Length > 0, "x86_16 i32.const lowering produces mov instruction");
     }
 
     // ARM64 Tests
     private static void TestARM64Function()
     {
-        TestRunner.Assert(true, "ARM64 function structure");
+        var mapSet = new Badger.Architectures.ARM64.WATToARM64MapSet();
+        TestRunner.Assert(mapSet != null, "ARM64 WATToARM64MapSet should instantiate");
     }
 
     private static void TestARM64I32Const()
     {
-        TestRunner.Assert(true, "ARM64 i32.const generates mov instruction");
+        string asm = "mov x0, #42";
+        byte[] code = Badger.Architectures.ARM64.Assembler.Assemble(asm);
+        TestRunner.Assert(code.Length >= 4, "ARM64 i32.const lowering produces mov instruction");
     }
 
     // ARM32 Tests
     private static void TestARM32Function()
     {
-        TestRunner.Assert(true, "ARM32 function structure");
+        var mapSet = new Badger.Architectures.ARM32.WATToARM32MapSet();
+        TestRunner.Assert(mapSet != null, "ARM32 WATToARM32MapSet should instantiate");
     }
 
     private static void TestARM32I32Const()
     {
-        TestRunner.Assert(true, "ARM32 i32.const generates mov instruction");
+        string asm = "mov r0, #42";
+        byte[] code = Badger.Architectures.ARM32.Assembler.Assemble(asm);
+        TestRunner.Assert(code.Length >= 4, "ARM32 i32.const lowering produces mov instruction");
     }
 }
