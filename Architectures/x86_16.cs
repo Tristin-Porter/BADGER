@@ -38,13 +38,10 @@ public class WATToX86_16MapSet : MapSet
 // Part 2: x86_16 Assembler - converts assembly text to machine code
 public static class Assembler
 {
-    private static Dictionary<string, int> labels = new Dictionary<string, int>();
-    private static List<byte> code = new List<byte>();
-    
     public static byte[] Assemble(string assemblyText)
     {
-        labels.Clear();
-        code.Clear();
+        var labels = new Dictionary<string, int>();
+        var code = new List<byte>();
         
         var lines = assemblyText.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         
@@ -74,18 +71,18 @@ public static class Assembler
             if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith(";") || trimmed.EndsWith(":"))
                 continue;
                 
-            EncodeInstruction(trimmed);
+            EncodeInstruction(trimmed, code, labels);
         }
         
         return code.ToArray();
     }
     
-    private static int GetCurrentAddress()
+    private static int GetCurrentAddress(List<byte> code)
     {
         return code.Count;
     }
     
-    private static int CalculateRelativeOffsetFrom(string label, int fromAddress, int instructionSize)
+    private static int CalculateRelativeOffsetFrom(string label, int fromAddress, int instructionSize, Dictionary<string, int> labels)
     {
         if (!labels.ContainsKey(label))
             return 0; // Label not found, use placeholder
@@ -128,7 +125,7 @@ public static class Assembler
         return 2;
     }
     
-    private static void EncodeInstruction(string instruction)
+    private static void EncodeInstruction(string instruction, List<byte> code, Dictionary<string, int> labels)
     {
         var parts = instruction.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
         var opcode = parts[0].ToLower();
@@ -136,76 +133,76 @@ public static class Assembler
         switch (opcode)
         {
             case "push":
-                EncodePush(parts[1]);
+                EncodePush(parts[1], code);
                 break;
             case "pop":
-                EncodePop(parts[1]);
+                EncodePop(parts[1], code);
                 break;
             case "mov":
-                EncodeMov(parts[1], parts[2]);
+                EncodeMov(parts[1], parts[2], code);
                 break;
             case "add":
-                EncodeAdd(parts[1], parts[2]);
+                EncodeAdd(parts[1], parts[2], code);
                 break;
             case "sub":
-                EncodeSub(parts[1], parts[2]);
+                EncodeSub(parts[1], parts[2], code);
                 break;
             case "imul":
-                EncodeIMul(parts[1], parts[2]);
+                EncodeIMul(parts[1], parts[2], code);
                 break;
             case "and":
-                EncodeAnd(parts[1], parts[2]);
+                EncodeAnd(parts[1], parts[2], code);
                 break;
             case "or":
-                EncodeOr(parts[1], parts[2]);
+                EncodeOr(parts[1], parts[2], code);
                 break;
             case "xor":
-                EncodeXor(parts[1], parts[2]);
+                EncodeXor(parts[1], parts[2], code);
                 break;
             case "cmp":
-                EncodeCmp(parts[1], parts[2]);
+                EncodeCmp(parts[1], parts[2], code);
                 break;
             case "test":
-                EncodeTest(parts[1], parts[2]);
+                EncodeTest(parts[1], parts[2], code);
                 break;
             case "jmp":
-                EncodeJmp(parts[1]);
+                EncodeJmp(parts[1], code, labels);
                 break;
             case "jnz":
-                EncodeJnz(parts[1]);
+                EncodeJnz(parts[1], code, labels);
                 break;
             case "je":
-                EncodeJe(parts[1]);
+                EncodeJe(parts[1], code, labels);
                 break;
             case "jne":
-                EncodeJne(parts[1]);
+                EncodeJne(parts[1], code, labels);
                 break;
             case "jl":
-                EncodeJl(parts[1]);
+                EncodeJl(parts[1], code, labels);
                 break;
             case "jg":
-                EncodeJg(parts[1]);
+                EncodeJg(parts[1], code, labels);
                 break;
             case "call":
-                EncodeCall(parts[1]);
+                EncodeCall(parts[1], code, labels);
                 break;
             case "ret":
-                EncodeRet();
+                EncodeRet(code);
                 break;
             case "retf":
-                EncodeRetf();
+                EncodeRetf(code);
                 break;
             case "nop":
-                EncodeNop();
+                EncodeNop(code);
                 break;
             case "sete":
             case "setne":
             case "setl":
             case "setg":
-                EncodeSet(opcode, parts[1]);
+                EncodeSet(opcode, parts[1], code);
                 break;
             case "movzx":
-                EncodeMovzx(parts[1], parts[2]);
+                EncodeMovzx(parts[1], parts[2], code);
                 break;
             default:
                 throw new NotImplementedException($"Instruction not implemented: {opcode}");
@@ -235,24 +232,24 @@ public static class Assembler
     }
     
     // Instruction encoders for 16-bit
-    private static void EncodePush(string operand)
+    private static void EncodePush(string operand, List<byte> code)
     {
         // PUSH r16
         code.Add((byte)(0x50 + GetRegisterCode(operand)));
     }
     
-    private static void EncodePop(string operand)
+    private static void EncodePop(string operand, List<byte> code)
     {
         // POP r16
         code.Add((byte)(0x58 + GetRegisterCode(operand)));
     }
     
-    private static void EncodeMov(string dst, string src)
+    private static void EncodeMov(string dst, string src, List<byte> code)
     {
         // Guard against empty strings
         if (string.IsNullOrEmpty(dst) || string.IsNullOrEmpty(src))
         {
-            throw new ArgumentException("Invalid operands for MOV instruction");
+            throw new ArgumentException($"MOV instruction requires non-empty source and destination operands (dst='{dst}', src='{src}')");
         }
         
         if (src.StartsWith("[") && src.EndsWith("]"))
@@ -274,7 +271,7 @@ public static class Assembler
         {
             // MOV r16, imm16
             code.Add((byte)(0xB8 + GetRegisterCode(dst)));
-            AddImmediate16(int.Parse(src));
+            AddImmediate16(int.Parse(src), code);
         }
         else
         {
@@ -284,7 +281,7 @@ public static class Assembler
         }
     }
     
-    private static void EncodeAdd(string dst, string src)
+    private static void EncodeAdd(string dst, string src, List<byte> code)
     {
         // Check if src is immediate
         if (IsImmediate(src))
@@ -302,7 +299,7 @@ public static class Assembler
                 // ADD r/m16, imm16
                 code.Add(0x81);
                 code.Add((byte)(0xC0 + GetRegisterCode(dst))); // ModR/M: mod=11, reg=000 (/0), r/m=dst
-                AddImmediate16(imm);
+                AddImmediate16(imm, code);
             }
         }
         else
@@ -313,7 +310,7 @@ public static class Assembler
         }
     }
     
-    private static void EncodeSub(string dst, string src)
+    private static void EncodeSub(string dst, string src, List<byte> code)
     {
         // Check if src is immediate
         if (IsImmediate(src))
@@ -331,7 +328,7 @@ public static class Assembler
                 // SUB r/m16, imm16
                 code.Add(0x81);
                 code.Add((byte)(0xE8 + GetRegisterCode(dst))); // ModR/M: mod=11, reg=101 (/5), r/m=dst
-                AddImmediate16(imm);
+                AddImmediate16(imm, code);
             }
         }
         else
@@ -342,7 +339,7 @@ public static class Assembler
         }
     }
     
-    private static void EncodeIMul(string dst, string src)
+    private static void EncodeIMul(string dst, string src, List<byte> code)
     {
         // IMUL r16, r/m16
         code.Add(0x0F);
@@ -350,128 +347,128 @@ public static class Assembler
         code.Add((byte)(0xC0 | (GetRegisterCode(dst) << 3) | GetRegisterCode(src)));
     }
     
-    private static void EncodeAnd(string dst, string src)
+    private static void EncodeAnd(string dst, string src, List<byte> code)
     {
         // AND r/m16, r16
         code.Add(0x21);
         code.Add((byte)(0xC0 | (GetRegisterCode(src) << 3) | GetRegisterCode(dst)));
     }
     
-    private static void EncodeOr(string dst, string src)
+    private static void EncodeOr(string dst, string src, List<byte> code)
     {
         // OR r/m16, r16
         code.Add(0x09);
         code.Add((byte)(0xC0 | (GetRegisterCode(src) << 3) | GetRegisterCode(dst)));
     }
     
-    private static void EncodeXor(string dst, string src)
+    private static void EncodeXor(string dst, string src, List<byte> code)
     {
         // XOR r/m16, r16
         code.Add(0x31);
         code.Add((byte)(0xC0 | (GetRegisterCode(src) << 3) | GetRegisterCode(dst)));
     }
     
-    private static void EncodeCmp(string dst, string src)
+    private static void EncodeCmp(string dst, string src, List<byte> code)
     {
         // CMP r/m16, r16
         code.Add(0x39);
         code.Add((byte)(0xC0 | (GetRegisterCode(src) << 3) | GetRegisterCode(dst)));
     }
     
-    private static void EncodeTest(string dst, string src)
+    private static void EncodeTest(string dst, string src, List<byte> code)
     {
         // TEST r/m16, r16
         code.Add(0x85);
         code.Add((byte)(0xC0 | (GetRegisterCode(src) << 3) | GetRegisterCode(dst)));
     }
     
-    private static void EncodeJmp(string label)
+    private static void EncodeJmp(string label, List<byte> code, Dictionary<string, int> labels)
     {
         // JMP rel16 (near jump)
-        int currentAddress = GetCurrentAddress();
+        int currentAddress = GetCurrentAddress(code);
         code.Add(0xE9);
-        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 3); // JMP instruction is 3 bytes (1 opcode + 2 offset)
-        AddImmediate16(offset);
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 3, labels); // JMP instruction is 3 bytes (1 opcode + 2 offset)
+        AddImmediate16(offset, code);
     }
     
-    private static void EncodeJnz(string label)
+    private static void EncodeJnz(string label, List<byte> code, Dictionary<string, int> labels)
     {
         // JNZ rel16
-        int currentAddress = GetCurrentAddress();
+        int currentAddress = GetCurrentAddress(code);
         code.Add(0x0F);
         code.Add(0x85);
-        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 4); // JNZ instruction is 4 bytes
-        AddImmediate16(offset);
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 4, labels); // JNZ instruction is 4 bytes
+        AddImmediate16(offset, code);
     }
     
-    private static void EncodeJe(string label)
+    private static void EncodeJe(string label, List<byte> code, Dictionary<string, int> labels)
     {
         // JE rel16
-        int currentAddress = GetCurrentAddress();
+        int currentAddress = GetCurrentAddress(code);
         code.Add(0x0F);
         code.Add(0x84);
-        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 4); // JE instruction is 4 bytes
-        AddImmediate16(offset);
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 4, labels); // JE instruction is 4 bytes
+        AddImmediate16(offset, code);
     }
     
-    private static void EncodeJne(string label)
+    private static void EncodeJne(string label, List<byte> code, Dictionary<string, int> labels)
     {
         // JNE rel16
-        int currentAddress = GetCurrentAddress();
+        int currentAddress = GetCurrentAddress(code);
         code.Add(0x0F);
         code.Add(0x85);
-        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 4); // JNE instruction is 4 bytes
-        AddImmediate16(offset);
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 4, labels); // JNE instruction is 4 bytes
+        AddImmediate16(offset, code);
     }
     
-    private static void EncodeJl(string label)
+    private static void EncodeJl(string label, List<byte> code, Dictionary<string, int> labels)
     {
         // JL rel16
-        int currentAddress = GetCurrentAddress();
+        int currentAddress = GetCurrentAddress(code);
         code.Add(0x0F);
         code.Add(0x8C);
-        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 4); // JL instruction is 4 bytes
-        AddImmediate16(offset);
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 4, labels); // JL instruction is 4 bytes
+        AddImmediate16(offset, code);
     }
     
-    private static void EncodeJg(string label)
+    private static void EncodeJg(string label, List<byte> code, Dictionary<string, int> labels)
     {
         // JG rel16
-        int currentAddress = GetCurrentAddress();
+        int currentAddress = GetCurrentAddress(code);
         code.Add(0x0F);
         code.Add(0x8F);
-        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 4); // JG instruction is 4 bytes
-        AddImmediate16(offset);
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 4, labels); // JG instruction is 4 bytes
+        AddImmediate16(offset, code);
     }
     
-    private static void EncodeCall(string target)
+    private static void EncodeCall(string target, List<byte> code, Dictionary<string, int> labels)
     {
         // CALL rel16 (near call)
-        int currentAddress = GetCurrentAddress();
+        int currentAddress = GetCurrentAddress(code);
         code.Add(0xE8);
-        int offset = CalculateRelativeOffsetFrom(target, currentAddress, 3); // CALL instruction is 3 bytes
-        AddImmediate16(offset);
+        int offset = CalculateRelativeOffsetFrom(target, currentAddress, 3, labels); // CALL instruction is 3 bytes
+        AddImmediate16(offset, code);
     }
     
-    private static void EncodeRet()
+    private static void EncodeRet(List<byte> code)
     {
         // RET (near return)
         code.Add(0xC3);
     }
     
-    private static void EncodeRetf()
+    private static void EncodeRetf(List<byte> code)
     {
         // RETF (far return for real mode)
         code.Add(0xCB);
     }
     
-    private static void EncodeNop()
+    private static void EncodeNop(List<byte> code)
     {
         // NOP
         code.Add(0x90);
     }
     
-    private static void EncodeSet(string op, string reg)
+    private static void EncodeSet(string op, string reg, List<byte> code)
     {
         // SETcc r/m8
         code.Add(0x0F);
@@ -486,7 +483,7 @@ public static class Assembler
         code.Add((byte)(0xC0 | GetRegisterCode(reg)));
     }
     
-    private static void EncodeMovzx(string dst, string src)
+    private static void EncodeMovzx(string dst, string src, List<byte> code)
     {
         // MOVZX r16, r/m8
         code.Add(0x0F);
@@ -494,7 +491,7 @@ public static class Assembler
         code.Add((byte)(0xC0 | (GetRegisterCode(dst) << 3) | GetRegisterCode(src)));
     }
     
-    private static void AddImmediate16(int value)
+    private static void AddImmediate16(int value, List<byte> code)
     {
         // Add a 16-bit immediate value (little-endian)
         code.Add((byte)(value & 0xFF));
