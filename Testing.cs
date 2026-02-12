@@ -506,6 +506,65 @@ jump_target:
         {
             Assert(false, "Forward jump compiles", ex.Message);
         }
+        
+        // Test x86_32 label resolution with forward jump
+        string x86_32JumpAsm = @"
+start:
+    je target
+    nop
+target:
+    ret
+";
+        
+        try
+        {
+            var code32 = Badger.Architectures.x86_32.Assembler.Assemble(x86_32JumpAsm);
+            Assert(code32.Length > 0, "x86_32: Forward conditional jump compiles");
+            
+            // Verify the jump offset is correct
+            // JE = 0x0F 0x84 + 4-byte offset
+            // Offset should be: target address - (current address + 6)
+            // target is at address 7 (6 bytes for JE + 1 for NOP)
+            // current is at 0, so offset = 7 - 6 = 1
+            if (code32.Length >= 6 && code32[0] == 0x0F && code32[1] == 0x84)
+            {
+                int offset = code32[2] | (code32[3] << 8) | (code32[4] << 16) | (code32[5] << 24);
+                Assert(offset == 1, "x86_32: Jump offset is correctly calculated",
+                       $"Expected offset 1, got {offset}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Assert(false, "x86_32: Forward jump compiles", ex.Message);
+        }
+        
+        // Test x86_32 backward jump
+        string x86_32BackJumpAsm = @"
+loop_start:
+    nop
+    jne loop_start
+";
+        
+        try
+        {
+            var code32 = Badger.Architectures.x86_32.Assembler.Assemble(x86_32BackJumpAsm);
+            Assert(code32.Length > 0, "x86_32: Backward conditional jump compiles");
+            
+            // Verify backward jump offset
+            // loop_start is at 0, NOP is 1 byte, JNE starts at 1
+            // JNE = 0x0F 0x85 + 4-byte offset (6 bytes total)
+            // Offset = 0 - (1 + 6) = -7
+            if (code32.Length >= 7 && code32[1] == 0x0F && code32[2] == 0x85)
+            {
+                int offset = code32[3] | (code32[4] << 8) | (code32[5] << 16) | (code32[6] << 24);
+                Assert(offset == -7, "x86_32: Backward jump offset is correctly calculated",
+                       $"Expected offset -7, got {offset}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Assert(false, "x86_32: Backward jump compiles", ex.Message);
+        }
     }
     
     // ============================================================

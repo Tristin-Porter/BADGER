@@ -109,13 +109,51 @@ public static class Assembler
         return code.ToArray();
     }
     
+    private static int GetCurrentAddress()
+    {
+        return code.Count;
+    }
+    
+    private static int CalculateRelativeOffsetFrom(string label, int fromAddress, int instructionSize)
+    {
+        if (!labels.ContainsKey(label))
+            return 0; // Label not found, use placeholder
+            
+        int targetAddress = labels[label];
+        // Offset is relative to the end of the instruction
+        return targetAddress - (fromAddress + instructionSize);
+    }
+    
     private static int EstimateInstructionSize(string instruction)
     {
         // Simplified size estimation for 32-bit
-        if (instruction.StartsWith("mov")) return 3;
-        if (instruction.StartsWith("push") || instruction.StartsWith("pop")) return 1;
-        if (instruction.StartsWith("add") || instruction.StartsWith("sub")) return 3;
-        if (instruction.StartsWith("call") || instruction.StartsWith("jmp")) return 5;
+        var parts = instruction.Split(new[] { ' ', ',' }, StringSplitOptions.RemoveEmptyEntries);
+        var opcode = parts[0].ToLower();
+        
+        if (opcode == "mov")
+        {
+            // MOV r32, imm32 = 5 bytes (opcode + 4-byte immediate)
+            // MOV r32, r32 = 2 bytes (opcode + ModR/M)
+            if (parts.Length > 2 && IsImmediate(parts[2]))
+                return 5;
+            return 2;
+        }
+        if (opcode == "push" || opcode == "pop" || opcode == "ret" || opcode == "nop" || opcode == "cdq") return 1;
+        if (opcode == "add" || opcode == "sub")
+        {
+            // ADD/SUB with imm8 = 3 bytes, with imm32 = 6 bytes
+            if (parts.Length > 2 && IsImmediate(parts[2]))
+            {
+                int imm = int.Parse(parts[2]);
+                return (imm >= -128 && imm <= 127) ? 3 : 6;
+            }
+            return 2;
+        }
+        if (opcode == "call" || opcode == "jmp") return 5;
+        if (opcode.StartsWith("j")) return 6; // Conditional jumps
+        if (opcode == "imul") return 3;
+        if (opcode == "sete" || opcode == "setne" || opcode == "setl" || opcode == "setg") return 3;
+        if (opcode == "movzx") return 3;
         return 2;
     }
     
@@ -298,14 +336,14 @@ public static class Assembler
             {
                 // ADD r/m32, imm8
                 code.Add(0x83);
-                code.Add((byte)(0xC0 | GetRegisterCode(dst)));
+                code.Add((byte)(0xC0 + GetRegisterCode(dst))); // ModR/M: mod=11, reg=000 (/0), r/m=dst
                 code.Add((byte)imm);
             }
             else
             {
                 // ADD r/m32, imm32
                 code.Add(0x81);
-                code.Add((byte)(0xC0 | GetRegisterCode(dst)));
+                code.Add((byte)(0xC0 + GetRegisterCode(dst))); // ModR/M: mod=11, reg=000 (/0), r/m=dst
                 AddImmediate32(imm);
             }
         }
@@ -327,14 +365,14 @@ public static class Assembler
             {
                 // SUB r/m32, imm8
                 code.Add(0x83);
-                code.Add((byte)(0xE8 | GetRegisterCode(dst)));
+                code.Add((byte)(0xE8 + GetRegisterCode(dst))); // ModR/M: mod=11, reg=101 (/5), r/m=dst
                 code.Add((byte)imm);
             }
             else
             {
                 // SUB r/m32, imm32
                 code.Add(0x81);
-                code.Add((byte)(0xE8 | GetRegisterCode(dst)));
+                code.Add((byte)(0xE8 + GetRegisterCode(dst))); // ModR/M: mod=11, reg=101 (/5), r/m=dst
                 AddImmediate32(imm);
             }
         }
@@ -406,55 +444,69 @@ public static class Assembler
     private static void EncodeJmp(string label)
     {
         // JMP rel32
+        int currentAddress = GetCurrentAddress();
         code.Add(0xE9);
-        AddImmediate32(0); // Placeholder for offset
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 5); // JMP instruction is 5 bytes
+        AddImmediate32(offset);
     }
     
     private static void EncodeJnz(string label)
     {
         // JNZ rel32
+        int currentAddress = GetCurrentAddress();
         code.Add(0x0F);
         code.Add(0x85);
-        AddImmediate32(0); // Placeholder
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 6); // JNZ instruction is 6 bytes
+        AddImmediate32(offset);
     }
     
     private static void EncodeJe(string label)
     {
         // JE rel32
+        int currentAddress = GetCurrentAddress();
         code.Add(0x0F);
         code.Add(0x84);
-        AddImmediate32(0);
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 6); // JE instruction is 6 bytes
+        AddImmediate32(offset);
     }
     
     private static void EncodeJne(string label)
     {
         // JNE rel32
+        int currentAddress = GetCurrentAddress();
         code.Add(0x0F);
         code.Add(0x85);
-        AddImmediate32(0);
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 6); // JNE instruction is 6 bytes
+        AddImmediate32(offset);
     }
     
     private static void EncodeJl(string label)
     {
         // JL rel32
+        int currentAddress = GetCurrentAddress();
         code.Add(0x0F);
         code.Add(0x8C);
-        AddImmediate32(0);
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 6); // JL instruction is 6 bytes
+        AddImmediate32(offset);
     }
     
     private static void EncodeJg(string label)
     {
         // JG rel32
+        int currentAddress = GetCurrentAddress();
         code.Add(0x0F);
         code.Add(0x8F);
-        AddImmediate32(0);
+        int offset = CalculateRelativeOffsetFrom(label, currentAddress, 6); // JG instruction is 6 bytes
+        AddImmediate32(offset);
     }
     
     private static void EncodeCall(string target)
     {
         // CALL rel32
+        int currentAddress = GetCurrentAddress();
         code.Add(0xE8);
-        AddImmediate32(0); // Placeholder
+        int offset = CalculateRelativeOffsetFrom(target, currentAddress, 5); // CALL instruction is 5 bytes
+        AddImmediate32(offset);
     }
     
     private static void EncodeRet()
