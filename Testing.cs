@@ -35,6 +35,10 @@ public static class Testing
         TestX86_32Instructions();
         TestX86_16Assembler();
         TestX86_16Instructions();
+        TestARM64Assembler();
+        TestARM64Instructions();
+        TestARM32Assembler();
+        TestARM32Instructions();
         TestLabelResolution();
         TestNativeContainer();
         TestPEContainer();
@@ -675,6 +679,235 @@ loop:
     }
     
     // ============================================================
+    // ARM64 Assembler Tests
+    // ============================================================
+    
+    private static void TestARM64Assembler()
+    {
+        Console.WriteLine("\n--- ARM64 Assembler Tests ---");
+        
+        // Test basic assembly
+        var simpleAsm = "ret";
+        var result = Badger.Architectures.ARM64.Assembler.Assemble(simpleAsm);
+        Assert(result.Length == 4, "Basic ARM64 assembly produces 4 bytes");
+        
+        // Test assembly with labels
+        var labelAsm = @"
+            main:
+                nop
+                ret
+        ";
+        var resultWithLabel = Badger.Architectures.ARM64.Assembler.Assemble(labelAsm);
+        Assert(resultWithLabel.Length == 8, "Assembly with labels produces correct size (2 instructions = 8 bytes)");
+        
+        // Test multi-instruction assembly
+        var multiAsm = @"
+            mov x0, #42
+            mov x1, #100
+            add x2, x0, x1
+            ret
+        ";
+        var multiResult = Badger.Architectures.ARM64.Assembler.Assemble(multiAsm);
+        Assert(multiResult.Length == 16, "Multi-instruction assembly (4 instructions = 16 bytes)");
+    }
+    
+    // ============================================================
+    // ARM64 Instruction Encoding Tests
+    // ============================================================
+    
+    private static void TestARM64Instructions()
+    {
+        Console.WriteLine("\n--- ARM64 Instruction Encoding Tests ---");
+        
+        // Test RET instruction
+        var retCode = Badger.Architectures.ARM64.Assembler.Assemble("ret");
+        AssertArrayEqual(new byte[] { 0xC0, 0x03, 0x5F, 0xD6 }, retCode, "RET instruction encoding");
+        
+        // Test NOP instruction
+        var nopCode = Badger.Architectures.ARM64.Assembler.Assemble("nop");
+        AssertArrayEqual(new byte[] { 0x1F, 0x20, 0x03, 0xD5 }, nopCode, "NOP instruction encoding");
+        
+        // Test MOV immediate (MOVZ)
+        var movImm = Badger.Architectures.ARM64.Assembler.Assemble("mov x0, #42");
+        Assert(movImm.Length == 4, "MOV x0, #42 is 4 bytes");
+        Assert(movImm[3] == 0xD2, "MOV x0, #42 uses MOVZ encoding (top byte 0xD2)");
+        
+        // Test MOV register to register (ORR with XZR)
+        var movReg = Badger.Architectures.ARM64.Assembler.Assemble("mov x1, x2");
+        Assert(movReg.Length == 4, "MOV x1, x2 is 4 bytes");
+        Assert(movReg[3] == 0xAA, "MOV x1, x2 uses ORR encoding (top byte 0xAA)");
+        
+        // Test ADD with immediate
+        var addImm = Badger.Architectures.ARM64.Assembler.Assemble("add x0, x1, #10");
+        Assert(addImm.Length == 4, "ADD x0, x1, #10 is 4 bytes");
+        Assert((addImm[3] & 0xFF) == 0x91, "ADD immediate uses correct opcode");
+        
+        // Test ADD with register
+        var addReg = Badger.Architectures.ARM64.Assembler.Assemble("add x0, x1, x2");
+        Assert(addReg.Length == 4, "ADD x0, x1, x2 is 4 bytes");
+        Assert((addReg[3] & 0xFF) == 0x8B, "ADD register uses correct opcode");
+        
+        // Test SUB with immediate
+        var subImm = Badger.Architectures.ARM64.Assembler.Assemble("sub sp, sp, #16");
+        Assert(subImm.Length == 4, "SUB sp, sp, #16 is 4 bytes");
+        Assert((subImm[3] & 0xFF) == 0xD1, "SUB immediate uses correct opcode");
+        
+        // Test SUB with register
+        var subReg = Badger.Architectures.ARM64.Assembler.Assemble("sub x0, x1, x2");
+        Assert(subReg.Length == 4, "SUB x0, x1, x2 is 4 bytes");
+        Assert((subReg[3] & 0xFF) == 0xCB, "SUB register uses correct opcode");
+        
+        // Test MUL instruction
+        var mul = Badger.Architectures.ARM64.Assembler.Assemble("mul x0, x1, x2");
+        Assert(mul.Length == 4, "MUL x0, x1, x2 is 4 bytes");
+        Assert((mul[3] & 0xFF) == 0x9B, "MUL uses correct opcode");
+        
+        // Test AND instruction
+        var and = Badger.Architectures.ARM64.Assembler.Assemble("and x0, x1, x2");
+        Assert(and.Length == 4, "AND x0, x1, x2 is 4 bytes");
+        Assert((and[3] & 0xFF) == 0x8A, "AND uses correct opcode");
+        
+        // Test ORR instruction
+        var orr = Badger.Architectures.ARM64.Assembler.Assemble("orr x0, x1, x2");
+        Assert(orr.Length == 4, "ORR x0, x1, x2 is 4 bytes");
+        Assert((orr[3] & 0xFF) == 0xAA, "ORR uses correct opcode");
+        
+        // Test EOR instruction
+        var eor = Badger.Architectures.ARM64.Assembler.Assemble("eor x0, x1, x2");
+        Assert(eor.Length == 4, "EOR x0, x1, x2 is 4 bytes");
+        Assert((eor[3] & 0xFF) == 0xCA, "EOR uses correct opcode");
+        
+        // Test CMP with immediate
+        var cmpImm = Badger.Architectures.ARM64.Assembler.Assemble("cmp x0, #10");
+        Assert(cmpImm.Length == 4, "CMP x0, #10 is 4 bytes");
+        Assert((cmpImm[3] & 0xFF) == 0xF1, "CMP immediate uses SUBS opcode");
+        
+        // Test CMP with register
+        var cmpReg = Badger.Architectures.ARM64.Assembler.Assemble("cmp x0, x1");
+        Assert(cmpReg.Length == 4, "CMP x0, x1 is 4 bytes");
+        Assert((cmpReg[3] & 0xFF) == 0xEB, "CMP register uses SUBS opcode");
+        
+        // Test STP (store pair)
+        var stp = Badger.Architectures.ARM64.Assembler.Assemble("stp x29, x30, [sp, #-16]!");
+        Assert(stp.Length == 4, "STP x29, x30, [sp, #-16]! is 4 bytes");
+        Assert((stp[3] & 0xFE) == 0xA8, "STP uses correct opcode");
+        
+        // Test LDP (load pair)
+        var ldp = Badger.Architectures.ARM64.Assembler.Assemble("ldp x29, x30, [sp], #16");
+        Assert(ldp.Length == 4, "LDP x29, x30, [sp], #16 is 4 bytes");
+        Assert((ldp[3] & 0xFE) == 0xA8, "LDP uses correct opcode");
+        
+        // Test LDR (load register)
+        var ldr = Badger.Architectures.ARM64.Assembler.Assemble("ldr w0, [sp], #4");
+        Assert(ldr.Length == 4, "LDR w0, [sp], #4 is 4 bytes");
+        Assert((ldr[3] & 0xFF) == 0xB8, "LDR uses correct opcode");
+        
+        // Test STR (store register)
+        var str = Badger.Architectures.ARM64.Assembler.Assemble("str w0, [sp, #-4]!");
+        Assert(str.Length == 4, "STR w0, [sp, #-4]! is 4 bytes");
+        Assert((str[3] & 0xFF) == 0xB8, "STR uses correct opcode");
+        
+        // Test 32-bit operations (w registers)
+        var add32 = Badger.Architectures.ARM64.Assembler.Assemble("add w0, w1, w2");
+        Assert(add32.Length == 4, "ADD w0, w1, w2 is 4 bytes");
+        Assert((add32[3] & 0x7F) == 0x0B, "32-bit ADD has sf=0");
+        
+        var mov32 = Badger.Architectures.ARM64.Assembler.Assemble("mov w0, #42");
+        Assert(mov32.Length == 4, "MOV w0, #42 is 4 bytes");
+        Assert((mov32[3] & 0x7F) == 0x52, "32-bit MOV has sf=0");
+        
+        // Test branch with label
+        var branchAsm = @"
+            start:
+                nop
+                b start
+        ";
+        var branchCode = Badger.Architectures.ARM64.Assembler.Assemble(branchAsm);
+        Assert(branchCode.Length == 8, "Branch with label is 2 instructions = 8 bytes");
+        Assert((branchCode[7] & 0xFC) == 0x14, "B uses correct opcode (0b000101)");
+        
+        // Test conditional branches
+        var beqAsm = @"
+            loop:
+                nop
+                b.eq loop
+        ";
+        var beqCode = Badger.Architectures.ARM64.Assembler.Assemble(beqAsm);
+        Assert(beqCode.Length == 8, "B.EQ with label is 2 instructions = 8 bytes");
+        Assert((beqCode[7] & 0xFE) == 0x54, "B.EQ uses correct opcode");
+        Assert((beqCode[4] & 0x0F) == 0x00, "B.EQ uses condition code 0000 (EQ)");
+        
+        var bneAsm = @"
+            loop:
+                nop
+                b.ne loop
+        ";
+        var bneCode = Badger.Architectures.ARM64.Assembler.Assemble(bneAsm);
+        Assert(bneCode.Length == 8, "B.NE with label is 2 instructions = 8 bytes");
+        Assert((bneCode[4] & 0x0F) == 0x01, "B.NE uses condition code 0001 (NE)");
+        
+        var bltAsm = @"
+            loop:
+                nop
+                b.lt loop
+        ";
+        var bltCode = Badger.Architectures.ARM64.Assembler.Assemble(bltAsm);
+        Assert(bltCode.Length == 8, "B.LT with label is 2 instructions = 8 bytes");
+        Assert((bltCode[4] & 0x0F) == 0x0B, "B.LT uses condition code 1011 (LT)");
+        
+        var bgtAsm = @"
+            loop:
+                nop
+                b.gt loop
+        ";
+        var bgtCode = Badger.Architectures.ARM64.Assembler.Assemble(bgtAsm);
+        Assert(bgtCode.Length == 8, "B.GT with label is 2 instructions = 8 bytes");
+        Assert((bgtCode[4] & 0x0F) == 0x0C, "B.GT uses condition code 1100 (GT)");
+        
+        // Test BL (branch with link)
+        var blAsm = @"
+            main:
+                nop
+                bl main
+        ";
+        var blCode = Badger.Architectures.ARM64.Assembler.Assemble(blAsm);
+        Assert(blCode.Length == 8, "BL with label is 2 instructions = 8 bytes");
+        Assert((blCode[7] & 0xFC) == 0x94, "BL uses correct opcode (0b100101)");
+        
+        // Test complete function prologue/epilogue (ARM64)
+        var prologueCode = Badger.Architectures.ARM64.Assembler.Assemble(@"
+            stp x29, x30, [sp, #-16]!
+            mov x29, sp
+            sub sp, sp, #32
+        ");
+        Assert(prologueCode.Length == 12, "ARM64 function prologue (3 instructions = 12 bytes)");
+        
+        var epilogueCode = Badger.Architectures.ARM64.Assembler.Assemble(@"
+            mov sp, x29
+            ldp x29, x30, [sp], #16
+            ret
+        ");
+        Assert(epilogueCode.Length == 12, "ARM64 function epilogue (3 instructions = 12 bytes)");
+        
+        // Verify all ARM64 instructions are exactly 4 bytes (fixed width)
+        var allInstructions = new[] { 
+            retCode, nopCode, movImm, movReg, addImm, addReg, 
+            subImm, subReg, mul, and, orr, eor, cmpImm, cmpReg,
+            stp, ldp, ldr, str
+        };
+        foreach (var code in allInstructions)
+        {
+            Assert(code.Length == 4, "All ARM64 instructions are exactly 4 bytes");
+        }
+        
+        // Verify little-endian encoding
+        // RET = 0xD65F03C0, so in little-endian: C0 03 5F D6
+        Assert(retCode[0] == 0xC0 && retCode[1] == 0x03 && 
+               retCode[2] == 0x5F && retCode[3] == 0xD6,
+               "ARM64 instructions use little-endian byte order");
+    }
+    
+    // ============================================================
     // Label Resolution Tests
     // ============================================================
     
@@ -958,6 +1191,250 @@ test:
         catch (Exception ex)
         {
             Assert(false, "E2E: Complex function", ex.Message);
+        }
+    }
+    
+    // ====================================================================
+    // ARM32 Assembler Tests
+    // ====================================================================
+    
+    private static void TestARM32Assembler()
+    {
+        Console.WriteLine("\n--- ARM32 Assembler Tests ---");
+        
+        try
+        {
+            // Test basic instruction
+            var asm = "bx lr";
+            var code = Architectures.ARM32.Assembler.Assemble(asm);
+            Assert(code.Length == 4, "ARM32: BX LR size", $"Expected 4 bytes, got {code.Length}");
+            AssertArrayEqual(code, new byte[] { 0x1E, 0xFF, 0x2F, 0xE1 }, "ARM32: BX LR encoding");
+            
+            // Test NOP
+            asm = "nop";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x00, 0x00, 0xA0, 0xE1 }, "ARM32: NOP encoding");
+            
+            // Test MOV register
+            asm = "mov r1, r2";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x02, 0x10, 0xA0, 0xE1 }, "ARM32: MOV register");
+            
+            // Test MOV immediate
+            asm = "mov r0, #42";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x2A, 0x00, 0xA0, 0xE3 }, "ARM32: MOV immediate");
+            
+            Console.WriteLine("  ✓ Basic ARM32 instructions");
+        }
+        catch (Exception ex)
+        {
+            Assert(false, "ARM32: Basic assembler", ex.Message);
+        }
+    }
+    
+    private static void TestARM32Instructions()
+    {
+        Console.WriteLine("\n--- ARM32 Instruction Encoding Tests ---");
+        
+        // Arithmetic instructions
+        try
+        {
+            var asm = "add r0, r1, r2";
+            var code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x02, 0x00, 0x81, 0xE0 }, "ARM32: ADD register");
+            
+            asm = "add r0, r1, #8";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x08, 0x00, 0x81, 0xE2 }, "ARM32: ADD immediate");
+            
+            asm = "sub r0, r1, r2";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x02, 0x00, 0x41, 0xE0 }, "ARM32: SUB register");
+            
+            asm = "sub r0, r1, #4";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x04, 0x00, 0x41, 0xE2 }, "ARM32: SUB immediate");
+            
+            asm = "mul r0, r1, r2";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x91, 0x02, 0x00, 0xE0 }, "ARM32: MUL");
+            
+            Console.WriteLine("  ✓ ARM32 arithmetic instructions");
+        }
+        catch (Exception ex)
+        {
+            Assert(false, "ARM32: Arithmetic", ex.Message);
+        }
+        
+        // Logical instructions
+        try
+        {
+            var asm = "and r0, r1, r2";
+            var code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x02, 0x00, 0x01, 0xE0 }, "ARM32: AND");
+            
+            asm = "orr r0, r1, r2";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x02, 0x00, 0x81, 0xE1 }, "ARM32: ORR");
+            
+            asm = "eor r0, r1, r2";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x02, 0x00, 0x21, 0xE0 }, "ARM32: EOR");
+            
+            Console.WriteLine("  ✓ ARM32 logical instructions");
+        }
+        catch (Exception ex)
+        {
+            Assert(false, "ARM32: Logical", ex.Message);
+        }
+        
+        // Compare instruction
+        try
+        {
+            var asm = "cmp r0, #5";
+            var code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x05, 0x00, 0x50, 0xE3 }, "ARM32: CMP immediate");
+            
+            asm = "cmp r0, r1";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x01, 0x00, 0x50, 0xE1 }, "ARM32: CMP register");
+            
+            Console.WriteLine("  ✓ ARM32 compare instruction");
+        }
+        catch (Exception ex)
+        {
+            Assert(false, "ARM32: Compare", ex.Message);
+        }
+        
+        // Branch instructions
+        try
+        {
+            var asm = @"
+                b skip
+                nop
+            skip:
+                nop
+            ";
+            var code = Architectures.ARM32.Assembler.Assemble(asm);
+            // First instruction should be B with offset 0 (forward by 1 instruction)
+            AssertArrayEqual(new byte[] { code[0], code[1], code[2], code[3] }, 
+                       new byte[] { 0x00, 0x00, 0x00, 0xEA }, "ARM32: B unconditional");
+            
+            asm = @"
+                beq target
+                nop
+            target:
+                nop
+            ";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(new byte[] { code[0], code[1], code[2], code[3] }, 
+                       new byte[] { 0x00, 0x00, 0x00, 0x0A }, "ARM32: BEQ");
+            
+            asm = @"
+                bne target
+                nop
+            target:
+                nop
+            ";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(new byte[] { code[0], code[1], code[2], code[3] }, 
+                       new byte[] { 0x00, 0x00, 0x00, 0x1A }, "ARM32: BNE");
+            
+            asm = @"
+                bl func
+                nop
+            func:
+                nop
+            ";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(new byte[] { code[0], code[1], code[2], code[3] }, 
+                       new byte[] { 0x00, 0x00, 0x00, 0xEB }, "ARM32: BL");
+            
+            Console.WriteLine("  ✓ ARM32 branch instructions");
+        }
+        catch (Exception ex)
+        {
+            Assert(false, "ARM32: Branches", ex.Message);
+        }
+        
+        // Stack operations
+        try
+        {
+            var asm = "push {r0, r1}";
+            var code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x03, 0x00, 0x2D, 0xE9 }, "ARM32: PUSH {r0, r1}");
+            
+            asm = "pop {r0, r1}";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x03, 0x00, 0xBD, 0xE8 }, "ARM32: POP {r0, r1}");
+            
+            asm = "push {r11, lr}";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x00, 0x48, 0x2D, 0xE9 }, "ARM32: PUSH {r11, lr}");
+            
+            asm = "pop {r11, pc}";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x00, 0x88, 0xBD, 0xE8 }, "ARM32: POP {r11, pc}");
+            
+            Console.WriteLine("  ✓ ARM32 stack operations");
+        }
+        catch (Exception ex)
+        {
+            Assert(false, "ARM32: Stack ops", ex.Message);
+        }
+        
+        // Load/Store instructions
+        try
+        {
+            var asm = "ldr r0, [r1, #4]";
+            var code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x04, 0x00, 0x91, 0xE5 }, "ARM32: LDR positive offset");
+            
+            asm = "ldr r0, [r1, #-4]";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x04, 0x00, 0x11, 0xE5 }, "ARM32: LDR negative offset");
+            
+            asm = "str r0, [r1, #8]";
+            code = Architectures.ARM32.Assembler.Assemble(asm);
+            AssertArrayEqual(code, new byte[] { 0x08, 0x00, 0x81, 0xE5 }, "ARM32: STR");
+            
+            Console.WriteLine("  ✓ ARM32 load/store instructions");
+        }
+        catch (Exception ex)
+        {
+            Assert(false, "ARM32: Load/Store", ex.Message);
+        }
+        
+        // Complete function test
+        try
+        {
+            var asm = @"
+            main:
+                push {r11, lr}
+                mov r11, sp
+                sub sp, sp, #16
+                mov r0, #5
+                add r0, r0, #3
+                mov sp, r11
+                pop {r11, pc}
+            ";
+            var code = Architectures.ARM32.Assembler.Assemble(asm);
+            Assert(code.Length == 28, "ARM32: Function length", $"Expected 28 bytes, got {code.Length}");
+            
+            // Verify prologue: PUSH {r11, lr}
+            AssertArrayEqual(new byte[] { code[0], code[1], code[2], code[3] }, 
+                       new byte[] { 0x00, 0x48, 0x2D, 0xE9 }, "ARM32: Function prologue");
+            
+            // Verify epilogue: POP {r11, pc}
+            AssertArrayEqual(new byte[] { code[24], code[25], code[26], code[27] }, 
+                       new byte[] { 0x00, 0x88, 0xBD, 0xE8 }, "ARM32: Function epilogue");
+            
+            Console.WriteLine("  ✓ ARM32 complete function");
+        }
+        catch (Exception ex)
+        {
+            Assert(false, "ARM32: Complete function", ex.Message);
         }
     }
 }

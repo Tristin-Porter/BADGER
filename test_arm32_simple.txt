@@ -1,0 +1,6 @@
+main:
+    push {r11, lr}
+    mov r11, sp
+    mov r0, #42
+    mov sp, r11
+    pop {r11, pc}
