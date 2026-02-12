@@ -56,7 +56,7 @@ public class WATToARM64MapSet : MapSet
     public Map BrIf = "    ldr w0, [sp], #4\n    cmp w0, #0\n    b.ne {labelidx}";
     
     // Memory operations
-    public Map I32Load = "    ldr w0, [sp], #4\n    ldr w0, [w0, #{offset}]\n    str w0, [sp, #-4]!";
+    public Map I32Load = "    ldr w0, [sp], #4\n    ldr w1, [x0, #{offset}]\n    str w1, [sp, #-4]!";
     public Map I32Store = "    ldr w1, [sp], #4\n    ldr w0, [sp], #4\n    str w1, [w0, #{offset}]";
     
     // Stack operations

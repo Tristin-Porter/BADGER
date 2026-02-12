@@ -55,7 +55,7 @@ public class WATToX86_16MapSet : MapSet
     public Map BrIf = "    pop ax\n    test ax, ax\n    jnz {labelidx}";
     
     // Memory operations
-    public Map I32Load = "    pop ax\n    mov ax, [ax + {offset}]\n    push ax";
+    public Map I32Load = "    pop ax\n    mov bx, [ax + {offset}]\n    push bx";
     public Map I32Store = "    pop bx\n    pop ax\n    mov [ax + {offset}], bx";
     
     // Stack operations
