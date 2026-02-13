@@ -379,6 +379,12 @@ public class BadgerAssembler
     /// <param name="architecture">Target architecture (default: x86_64)</param>
     /// <param name="format">Output container format (default: Native)</param>
     /// <returns>Compiled binary as byte array</returns>
+    /// <remarks>
+    /// Note: Full WAT parsing is currently in development. The current implementation
+    /// generates a simple function prologue/epilogue for each architecture to demonstrate
+    /// the complete compilation pipeline. The CDTk-based WAT parser is scaffolded and ready
+    /// for integration.
+    /// </remarks>
     public static byte[] Compile(string watSource, Architecture architecture = Architecture.x86_64, ContainerFormat format = ContainerFormat.Native)
     {
         // For now, generate simple test assembly directly
