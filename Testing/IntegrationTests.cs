@@ -15,6 +15,9 @@ public static class IntegrationTests
         TestRunner.RunTest("x86_64 Native container end-to-end", TestX86_64NativeContainer);
         TestRunner.RunTest("x86_64 PE container end-to-end", TestX86_64PEContainer);
         TestRunner.RunTest("All architectures can assemble", TestAllArchitecturesAssemble);
+        TestRunner.RunTest("Public API - Compile method", TestPublicAPICompile);
+        TestRunner.RunTest("Public API - CompileFile method", TestPublicAPICompileFile);
+        TestRunner.RunTest("Public API - CompileToFile method", TestPublicAPICompileToFile);
     }
 
     private static void TestSimpleX86_64Program()
@@ -111,6 +114,79 @@ main:
         string arm32_asm = "bx lr";
         byte[] arm32_code = Badger.Architectures.ARM32.Assembler.Assemble(arm32_asm);
         TestRunner.Assert(arm32_code.Length > 0, "ARM32 should assemble");
+    }
+
+    private static void TestPublicAPICompile()
+    {
+        // Test the public API Compile method
+        string watSource = "(module)";
+        
+        // Test default parameters (x86_64, Native)
+        byte[] binary = BadgerAssembler.Compile(watSource);
+        TestRunner.Assert(binary != null, "Should produce binary");
+        TestRunner.Assert(binary.Length > 0, "Binary should not be empty");
+        
+        // Test with explicit architecture
+        byte[] binary_arm64 = BadgerAssembler.Compile(watSource, BadgerAssembler.Architecture.ARM64);
+        TestRunner.Assert(binary_arm64 != null, "Should produce ARM64 binary");
+        TestRunner.Assert(binary_arm64.Length > 0, "ARM64 binary should not be empty");
+        
+        // Test with PE format
+        byte[] binary_pe = BadgerAssembler.Compile(watSource, BadgerAssembler.Architecture.x86_64, BadgerAssembler.ContainerFormat.PE);
+        TestRunner.Assert(binary_pe != null, "Should produce PE binary");
+        TestRunner.Assert(binary_pe.Length > binary.Length, "PE binary should be larger than Native");
+        TestRunner.AssertEqual(0x4D, binary_pe[0], "PE should start with 'M'");
+        TestRunner.AssertEqual(0x5A, binary_pe[1], "PE should start with 'Z'");
+    }
+
+    private static void TestPublicAPICompileFile()
+    {
+        // Create a temporary WAT file
+        string tempFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.wat");
+        try
+        {
+            File.WriteAllText(tempFile, "(module)");
+            
+            byte[] binary = BadgerAssembler.CompileFile(tempFile);
+            TestRunner.Assert(binary != null, "Should compile from file");
+            TestRunner.Assert(binary.Length > 0, "Binary should not be empty");
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
+
+    private static void TestPublicAPICompileToFile()
+    {
+        // Create temporary files
+        string tempInputFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.wat");
+        string tempOutputFile = Path.Combine(Path.GetTempPath(), $"test_{Guid.NewGuid()}.bin");
+        
+        try
+        {
+            File.WriteAllText(tempInputFile, "(module)");
+            
+            BadgerAssembler.CompileToFile(tempInputFile, tempOutputFile);
+            
+            TestRunner.Assert(File.Exists(tempOutputFile), "Output file should be created");
+            byte[] binary = File.ReadAllBytes(tempOutputFile);
+            TestRunner.Assert(binary.Length > 0, "Output file should not be empty");
+        }
+        finally
+        {
+            if (File.Exists(tempInputFile))
+            {
+                File.Delete(tempInputFile);
+            }
+            if (File.Exists(tempOutputFile))
+            {
+                File.Delete(tempOutputFile);
+            }
+        }
     }
 }
 

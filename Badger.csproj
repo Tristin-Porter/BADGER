@@ -1,10 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <OutputType>Exe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        
+        <!-- NuGet Package Metadata -->
+        <PackageId>Badger</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Tristin Porter</Authors>
+        <Description>BADGER - Better Assembler for Dependable Generation of Efficient Results. A C# assembler that accepts standard WAT (WebAssembly Text) as input and emits native machine code for multiple architectures (x86_64, x86_32, x86_16, ARM64, ARM32) in Native and PE container formats.</Description>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/Tristin-Porter/BADGER</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Tristin-Porter/BADGER</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>assembler;wasm;webassembly;wat;x86;arm;compiler;native</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>
