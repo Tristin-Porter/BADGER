@@ -15,10 +15,15 @@
         <RepositoryUrl>https://github.com/Tristin-Porter/BADGER</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>assembler;wasm;webassembly;wat;x86;arm;compiler;native</PackageTags>
+        <PackageReadmeFile>README.nuget.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
       <PackageReference Include="CDTk" Version="9.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="README.nuget.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 
     <ItemGroup>
